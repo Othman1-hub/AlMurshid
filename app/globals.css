@@ -4,6 +4,26 @@
 
 @layer base {
   :root {
+    /* Site palette */
+    --color-bg: #050505;
+    --color-surface: #0A0A0A;
+    --color-panel: #0f0f0f;
+    --color-border: #222222;
+    --color-border-strong: #333333;
+    --color-ink: #ffffff;
+    --color-ink-subtle: #999999;
+    --color-ink-muted: #6b7280;
+    --color-ink-dim: #4b5563;
+    --color-ink-deep: #374151;
+    --color-ink-soft-contrast: #d1d5db;
+    --color-ink-soft: #9ca3af;
+    --color-accent: #ff0000;
+    --color-accent-strong: #cc0000;
+    --color-surface-alt: #111111;
+    --color-surface-contrast: #000000;
+
+    color-scheme: dark;
+
     --background: 0 0% 100%;
     --foreground: 240 10% 3.9%;
     --card: 0 0% 100%;
@@ -46,6 +66,94 @@
     --border: 240 3.7% 15.9%;
     --input: 240 3.7% 15.9%;
     --ring: 240 4.9% 83.9%;
+  }
+
+  /* Light theme override */
+  .light {
+    --color-bg: #f7f7f9;
+    --color-surface: #ffffff;
+    --color-panel: #f0f2f5;
+    --color-border: #dfe2e8;
+    --color-border-strong: #c2c7d0;
+    --color-ink: #0b0b11;
+    --color-ink-subtle: #2c2f36;
+    --color-ink-muted: #4b5563;
+    --color-ink-dim: #6b7280;
+    --color-ink-deep: #1f2937;
+    --color-ink-soft-contrast: #2c2f36;
+    --color-ink-soft: #4b5563;
+    --color-accent: #0044FF;
+    --color-accent-strong: #0033CC;
+    --color-surface-alt: #e9ebf0;
+    --color-surface-contrast: #ffffff;
+
+    color-scheme: light;
+  }
+
+  /* Neon theme override */
+  .neon {
+    --color-bg: #04060f;
+    --color-surface: #0b1220;
+    --color-panel: #0f172a;
+    --color-border: #1f2a44;
+    --color-border-strong: #2c3b5f;
+    --color-ink: #e6f6ff;
+    --color-ink-subtle: #b8d9ff;
+    --color-ink-muted: #7fb4e5;
+    --color-ink-dim: #5d7fa6;
+    --color-ink-deep: #2f3f63;
+    --color-ink-soft-contrast: #9fb8ff;
+    --color-ink-soft: #92a6c9;
+    --color-accent: #00e0a4;
+    --color-accent-strong: #00c38b;
+    --color-surface-alt: #101a2e;
+    --color-surface-contrast: #0a0f1c;
+
+    color-scheme: dark;
+  }
+
+  /* Sunset theme override */
+  .sunset {
+    --color-bg: #0f0a0a;
+    --color-surface: #1a1111;
+    --color-panel: #221616;
+    --color-border: #2f1f1f;
+    --color-border-strong: #433030;
+    --color-ink: #ffe9e3;
+    --color-ink-subtle: #fbd1c4;
+    --color-ink-muted: #f3a28d;
+    --color-ink-dim: #d67965;
+    --color-ink-deep: #a44f3c;
+    --color-ink-soft-contrast: #f5c7b8;
+    --color-ink-soft: #e6a58f;
+    --color-accent: #ff5c8d;
+    --color-accent-strong: #e14a77;
+    --color-surface-alt: #271919;
+    --color-surface-contrast: #120c0c;
+
+    color-scheme: dark;
+  }
+
+  /* Sand theme override */
+  .sand {
+    --color-bg: #f8f3eb;
+    --color-surface: #ffffff;
+    --color-panel: #f2e9dd;
+    --color-border: #e2d7c6;
+    --color-border-strong: #cbbda8;
+    --color-ink: #1f140a;
+    --color-ink-subtle: #3c2b1c;
+    --color-ink-muted: #5b4634;
+    --color-ink-dim: #7c5e47;
+    --color-ink-deep: #4a3523;
+    --color-ink-soft-contrast: #e6d8c6;
+    --color-ink-soft: #8d735a;
+    --color-accent: #d97706;
+    --color-accent-strong: #b26205;
+    --color-surface-alt: #efe4d5;
+    --color-surface-contrast: #ffffff;
+
+    color-scheme: light;
   }
 }
 
