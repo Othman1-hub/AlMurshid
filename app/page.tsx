@@ -12,10 +12,20 @@ import { Terminal, LayoutGrid, Zap, ChevronLeft, Shield, Code2, Play, Server, Da
    - Single accent color (Electric Blue).
 */
 
-const Button = ({ children, className = "", variant = "default", size = "default", ...props }) => {
+type ButtonVariant = "default" | "outline" | "ghost" | "link" | "accent";
+type ButtonSize = "default" | "sm" | "lg" | "icon";
+
+interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  children: React.ReactNode;
+  className?: string;
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+}
+
+const Button = ({ children, className = "", variant = "default", size = "default", ...props }: ButtonProps) => {
   const baseStyles = "inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-ink)] disabled:pointer-events-none disabled:opacity-50 font-mono tracking-wide border";
   
-  const variants = {
+  const variants: Record<ButtonVariant, string> = {
     default: "bg-[var(--color-ink)] text-[var(--color-bg)] border-[var(--color-ink)] hover:bg-[var(--color-ink-soft-contrast)] hover:border-[var(--color-ink-soft-contrast)]",
     outline: "bg-transparent text-[var(--color-ink)] border-[var(--color-border-strong)] hover:border-[var(--color-ink)] hover:bg-[var(--color-ink)] hover:text-[var(--color-bg)]",
     ghost: "bg-transparent text-[var(--color-ink-soft)] border-transparent hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-alt)]",
@@ -23,7 +33,7 @@ const Button = ({ children, className = "", variant = "default", size = "default
     accent: "bg-[var(--color-accent)] text-[var(--color-ink)] border-[var(--color-accent)] hover:bg-[var(--color-accent-strong)]"
   };
 
-  const sizes = {
+  const sizes: Record<ButtonSize, string> = {
     default: "h-10 px-6 py-2 rounded-none",
     sm: "h-8 px-3 text-xs rounded-none",
     lg: "h-14 px-8 text-base rounded-none",
@@ -37,7 +47,12 @@ const Button = ({ children, className = "", variant = "default", size = "default
   );
 };
 
-const Badge = ({ children, className = "" }) => (
+interface BadgeProps {
+  children: React.ReactNode;
+  className?: string;
+}
+
+const Badge = ({ children, className = "" }: BadgeProps) => (
   <div className={`inline-flex items-center border border-[var(--color-border-strong)] bg-[var(--color-surface-alt)] px-2 py-1 text-[10px] font-mono text-[var(--color-ink-soft)] uppercase tracking-wider rounded-none ${className}`}>
     {children}
   </div>
@@ -118,9 +133,11 @@ export default function AlMurshedLanding() {
             <Button variant="ghost" size="sm" className="gap-2" onClick={toggleTheme}>
               {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
             </Button>
-            <Button href="/sign-up" variant="default" size="sm" className="font-bold">
-              Start Now with new account
-            </Button>
+            <a href="/sign-up">
+              <Button variant="default" size="sm" className="font-bold">
+                Start Now with new account
+              </Button>
+            </a>
           </div>
         </div>
       </nav>
