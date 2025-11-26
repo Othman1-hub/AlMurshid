@@ -65,8 +65,8 @@ const Separator = ({ className = "" }) => (
 /* --- MAIN LANDING PAGE --- */
 
 export default function AlMurshedLanding() {
-  type Theme = 'dark' | 'light' | 'neon' | 'sunset' | 'sand';
-  const themeOptions: Theme[] = ['dark', 'light', 'neon', 'sunset', 'sand'];
+  type Theme = 'dark' | 'light' | 'neon' | 'sunset' | 'sand' | 'sky' | 'pink' | 'coffee';
+  const themeOptions: Theme[] = ['dark', 'light', 'neon', 'sunset', 'sand', 'sky', 'pink', 'coffee'];
   const [theme, setTheme] = useState<Theme>('dark');
 
   useEffect(() => {
