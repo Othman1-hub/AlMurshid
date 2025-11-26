@@ -1,7 +1,11 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useActionState, useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, Plus, Sparkles, Activity, Edit2, Trash2, LayoutGrid, Server, Database, Cpu, ChevronDown, AlertCircle, Flame, Trophy, Target, Zap, Award, Shield } from 'lucide-react';
+import Link from 'next/link';
+import { useFormState, useFormStatus } from 'react-dom';
+import { getUserDashboardData, signOut } from '../actions/auth';
+import { addProject } from '../actions/projects';
 
 type Theme = 'dark' | 'light' | 'neon' | 'sunset' | 'sand' | 'sky' | 'pink' | 'coffee';
 const themeOptions: Theme[] = ['dark', 'light', 'neon', 'sunset', 'sand', 'sky', 'pink', 'coffee'];
@@ -23,26 +27,66 @@ type Quest = {
   completed: boolean;
 };
 
-export default function DashboardPage() {
+function SubmitButton() {
+  const { pending } = useFormStatus();
+  
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      className="px-6 py-3 bg-[var(--color-accent)] text-white border border-[var(--color-accent)] text-xs font-mono font-bold hover:bg-[var(--color-accent-strong)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-[0_0_20px_-5px_var(--color-accent)]"
+    >
+      {pending ? 'EXECUTING...' : 'EXECUTE_CREATE'}
+    </button>
+  );
+}
+
+export default  function DashboardPage() {
+  
   const [theme, setTheme] = useState<Theme>('dark');
   const [streak, setStreak] = useState(14);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  // User data state
+  const [username, setUsername] = useState('أحمد عبد الله');
+  const [userLevel, setUserLevel] = useState(7);
+  const [totalXp, setTotalXp] = useState(42500);
+  const [currentXp, setCurrentXp] = useState(3820);
   
   // New: Daily Quests Data
-  const [dailyQuests, setDailyQuests] = useState<Quest[]>([
-  ]);
+  const [dailyQuests, setDailyQuests] = useState<Quest[]>([]);
 
-  const [projects, setProjects] = useState<Project[]>([
-    { id: 'PRJ-8821', name: 'منصة المهام الذكية', status: 'Active', eta: '3 أسابيع', tasks: 24, progress: 62, xpReward: 5000 },
-    { id: 'PRJ-7710', name: 'لوحة العملاء', status: 'Review', eta: '10 أيام', tasks: 12, progress: 78, xpReward: 2500 },
-    { id: 'PRJ-6644', name: 'خدمة الهوية', status: 'Planning', eta: 'شهر', tasks: 30, progress: 18, xpReward: 8000 },
-  ]);
+  const [projects, setProjects] = useState<Project[]>([]);
   
   const [formOpen, setFormOpen] = useState(false);
-  const [projectName, setProjectName] = useState('');
-  const [projectInfo, setProjectInfo] = useState('');
-  const [projectEta, setProjectEta] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
+
+  // Fetch dashboard data on mount
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const data = await getUserDashboardData();
+        
+        if (data) {
+          setUsername(data.stats.username);
+          setUserLevel(data.stats.level);
+          setTotalXp(data.stats.totalXp);
+          setProjects(data.projects as Project[]);
+          setCurrentXp(Math.min(data.stats.totalXp % 5000, 5000)); // XP towards next level
+        }
+      } catch (err) {
+        console.error('Failed to fetch dashboard data:', err);
+        setError('Failed to load dashboard data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   useEffect(() => {
     const stored = typeof window !== 'undefined' ? localStorage.getItem('almurshed-theme') : null;
@@ -75,27 +119,25 @@ export default function DashboardPage() {
     []
   );
 
-  const handleAddProject = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!projectName.trim()) return;
-    const id = `PRJ-${Math.floor(1000 + Math.random() * 9000)}`;
-    setProjects((prev) => [
-      {
-        id,
-        name: projectName,
-        status: 'Planning',
-        eta: projectEta || 'غير محدد',
-        tasks: 0,
-        progress: 0,
-        xpReward: 1000,
-      },
-      ...prev,
-    ]);
-    setProjectName('');
-    setProjectInfo('');
-    setProjectEta('');
-    setFormOpen(false);
-  };
+  const [formState, formAction] = useActionState(addProject, { 
+    error: undefined, 
+    success: undefined, 
+    values: { name: undefined, description: undefined } 
+  });
+
+  useEffect(() => {
+    if (formState.success) {
+      setFormOpen(false);
+      // Refresh projects data
+      const fetchData = async () => {
+        const data = await getUserDashboardData();
+        if (data) {
+          setProjects(data.projects as Project[]);
+        }
+      };
+      fetchData();
+    }
+  }, [formState.success]);
 
   const handleSaveName = (id: string) => {
     setProjects((prev) => prev.map((p) => (p.id === id ? { ...p, name: editingName || p.name } : p)));
@@ -219,15 +261,18 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            <div className="h-6 w-px bg-[var(--color-border)]"></div>
+            <div className="h-6 w-px bg-[var(--color-border)]"  ></div>
 
-            <a
+            <Link
+            onClick={async ()=>{
+                await signOut();
+            }} 
               href="/"
               className="flex items-center gap-2 text-xs font-mono font-bold text-[var(--color-ink-soft)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-alt)] px-3 py-2 border border-transparent hover:border-[var(--color-border)] transition-all"
             >
               <ArrowLeft className="w-4 h-4" />
               LOGOUT
-            </a>
+            </Link>
           </div>
         </div>
       </div>
@@ -242,13 +287,13 @@ export default function DashboardPage() {
           <div className="lg:col-span-4 bg-[var(--color-bg)] p-8 flex flex-col justify-between min-h-[200px]">
             <div className="flex items-start justify-between">
               <div>
-                <h1 className="text-2xl font-bold mb-1">أحمد عبد الله</h1>
+                <h1 className="text-2xl font-bold mb-1">{username}</h1>
                 <div className="text-xs font-mono text-[var(--color-accent)] uppercase tracking-widest mb-4 flex items-center gap-2">
                   <div className="w-2 h-2 bg-[var(--color-accent)] rounded-full animate-pulse" />
-                  {title} // ID: 8821
+                  {title} {/* ID: {userLevel} */}
                 </div>
                 <div className="inline-flex items-center gap-2 text-[10px] font-mono uppercase border border-[var(--color-border-strong)] bg-[var(--color-surface-alt)] px-2 py-1 text-[var(--color-ink)]">
-                  <Activity className="w-3 h-3 text-[var(--color-accent)]" /> Level 07
+                  <Activity className="w-3 h-3 text-[var(--color-accent)]" /> Level {String(userLevel).padStart(2, '0')}
                 </div>
               </div>
               
@@ -256,7 +301,7 @@ export default function DashboardPage() {
               <div className="relative group cursor-help">
                 <div className="w-16 h-16 bg-[var(--color-surface-alt)] border border-[var(--color-border)] flex items-center justify-center relative overflow-hidden">
                   <div className="absolute top-0 right-0 w-0 h-0 border-t-[20px] border-r-[20px] border-t-transparent border-r-[var(--color-gold)]"></div>
-                  <span className="font-mono text-2xl font-bold text-[var(--color-ink-soft)]">A</span>
+                  <span className="font-mono text-2xl font-bold text-[var(--color-ink-soft)]">{username.charAt(0)}</span>
                 </div>
                 <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 hidden group-hover:block bg-[var(--color-surface)] border border-[var(--color-border)] p-2 text-[10px] font-mono whitespace-nowrap z-20">
                   RANK: ALPHA ARCHITECT
@@ -268,7 +313,7 @@ export default function DashboardPage() {
             <div className="mt-8">
               <div className="flex justify-between text-[10px] font-mono mb-2 text-[var(--color-ink-soft)]">
                 <span>SYSTEM_CHARGE (XP)</span>
-                <span className="text-[var(--color-accent)]">{xp} / {nextLevel}</span>
+                <span className="text-[var(--color-accent)]">{currentXp} / {nextLevel}</span>
               </div>
               <div className="h-3 w-full bg-[var(--color-surface-alt)] relative overflow-hidden border border-[var(--color-border)]">
                 <div 
@@ -288,7 +333,7 @@ export default function DashboardPage() {
           {/* Gamified Stats Grid (Right) */}
           <div className="lg:col-span-5 grid grid-cols-2 gap-px bg-[var(--color-border)]">
             {[
-              { label: "Total XP Earned", value: "42.5k", icon: <Zap className="w-4 h-4" /> },
+              { label: "Total XP Earned", value: totalXp > 0 ? `${(totalXp / 1000).toFixed(1)}k` : "0", icon: <Zap className="w-4 h-4" /> },
               { label: "Quest Completion", value: "94%", icon: <Target className="w-4 h-4" /> },
               { label: "Focus Efficiency", value: "+18%", icon: <Sparkles className="w-4 h-4" /> },
               { label: "Active Badges", value: "05", icon: <Award className="w-4 h-4" /> }
@@ -489,14 +534,14 @@ export default function DashboardPage() {
             </div>
 
             {/* Modal Body */}
-            <form onSubmit={handleAddProject} className="p-8 space-y-6">
+            <form action={formAction} className="p-8 space-y-6">
               <div className="space-y-2">
                 <label className="block text-xs font-mono uppercase tracking-widest text-[var(--color-ink-soft)] flex items-center gap-2">
                   <span className="w-1 h-1 bg-[var(--color-accent)]"></span> Project Designation (Name)
                 </label>
                 <input
-                  value={projectName}
-                  onChange={(e) => setProjectName(e.target.value)}
+                  name="name"
+                  required
                   className="w-full bg-[var(--color-bg)] border border-[var(--color-border)] p-3 font-mono text-sm focus:outline-none focus:border-[var(--color-accent)] placeholder:text-[var(--color-ink-soft)]/30 transition-colors"
                   placeholder="ENTER_IDENTIFIER..."
                   autoFocus
@@ -508,25 +553,20 @@ export default function DashboardPage() {
                   <label className="block text-xs font-mono uppercase tracking-widest text-[var(--color-ink-soft)]">
                     Parameters (Description)
                   </label>
-                  <input
-                    value={projectInfo}
-                    onChange={(e) => setProjectInfo(e.target.value)}
-                    className="w-full bg-[var(--color-bg)] border border-[var(--color-border)] p-3 font-mono text-sm focus:outline-none focus:border-[var(--color-accent)]"
+                  <textarea
+                    name="description"
+                    className="w-full bg-[var(--color-bg)] border border-[var(--color-border)] p-3 font-mono text-sm focus:outline-none focus:border-[var(--color-accent)] resize-none"
                     placeholder="..."
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="block text-xs font-mono uppercase tracking-widest text-[var(--color-ink-soft)]">
-                    Timeline (ETA)
-                  </label>
-                  <input
-                    value={projectEta}
-                    onChange={(e) => setProjectEta(e.target.value)}
-                    className="w-full bg-[var(--color-bg)] border border-[var(--color-border)] p-3 font-mono text-sm focus:outline-none focus:border-[var(--color-accent)]"
-                    placeholder="e.g. 3 WEEKS"
+                    rows={3}
                   />
                 </div>
               </div>
+
+              {formState.error && (
+                <div className="p-3 bg-red-500/10 border border-red-500 text-red-500 text-xs font-mono">
+                  ERROR: {formState.error}
+                </div>
+              )}
 
               <div className="pt-6 flex justify-end gap-4 border-t border-[var(--color-border)] mt-2">
                 <button
@@ -536,12 +576,7 @@ export default function DashboardPage() {
                 >
                   ABORT_SEQUENCE
                 </button>
-                <button
-                  type="submit"
-                  className="px-6 py-3 bg-[var(--color-accent)] text-white border border-[var(--color-accent)] text-xs font-mono font-bold hover:bg-[var(--color-accent-strong)] transition-colors shadow-[0_0_20px_-5px_var(--color-accent)]"
-                >
-                  EXECUTE_CREATE
-                </button>
+                <SubmitButton />
               </div>
             </form>
           </div>

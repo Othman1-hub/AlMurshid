@@ -1,48 +1,106 @@
 'use client';
 
-import React, { useState } from 'react';
-import { FileText, Lock, Unlock, Copy, AlertTriangle, Terminal } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { FileText, Lock, Unlock, Copy, AlertTriangle, Terminal, CheckCircle } from 'lucide-react';
+import { getProjectBrief, updateProjectBrief, updateProjectPrompt } from '@/app/actions/brief';
 
-export default function ProjectBriefPage() {
-  const [briefText, setBriefText] = useState(
-    [
-      'PROJECT: AL-MURSHED',
-      'DATE: 2025-11-26',
-      '--------------------------------',
-      '',
-      'MISSION OBJECTIVE:',
-      "This project aims to build a comprehensive task management system for developers using gamification elements.",
-      '',
-      'CORE GOALS:',
-      '1. Reduce decision fatigue.',
-      '2. Automate WBS (Work Breakdown Structure) via AI.',
-      "3. Maintain developer 'Flow State' through RPG mechanics.",
-      '',
-      'TECHNICAL CONSTRAINTS:',
-      '- Framework: Next.js 15 (App Router)',
-      '- Database: Supabase (PostgreSQL)',
-      '- Styling: Tailwind CSS + Lucide Icons',
-      '',
-      'NOTES:',
-      "Focus on the 'Journal' aspect. The user should feel like they are writing in a captain's log.",
-    ].join('\n'),
-  );
+export default function ProjectBriefPage({ params }: any) {
+  const { projectId: projectIdStr } = React.use(params) as any;
+  const projectId = parseInt(projectIdStr);
 
-  const [promptText, setPromptText] = useState(
-    'Act as a Senior Solutions Architect. I want to build a Task Management App with Gamification. Tech Stack: Next.js, Supabase, Tailwind. Please generate a JSON schema for the database and a step-by-step implementation plan.',
-  );
-
+  const [briefText, setBriefText] = useState('');
+  const [promptText, setPromptText] = useState('');
   const [isBriefLocked, setIsBriefLocked] = useState(true);
   const [isPromptLocked, setIsPromptLocked] = useState(true);
   const [showUnlockConfirm, setShowUnlockConfirm] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [savingBrief, setSavingBrief] = useState(false);
+  const [savingPrompt, setSavingPrompt] = useState(false);
+  const [briefSaved, setBriefSaved] = useState(false);
+  const [promptSaved, setPromptSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch brief data on mount
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const data = await getProjectBrief(projectId);
+        if (data) {
+          setBriefText(data.breif || '');
+          setPromptText(data.prompt || '');
+        }
+      } catch (err) {
+        console.error('Failed to fetch brief:', err);
+        setError('Failed to load brief data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [projectId]);
+
+  const handleSaveBrief = async () => {
+    setSavingBrief(true);
+    setError(null);
+    try {
+      const result = await updateProjectBrief(projectId, briefText);
+      if (result.error) {
+        setError(result.error);
+      } else {
+        setBriefSaved(true);
+        setTimeout(() => setBriefSaved(false), 2000);
+      }
+    } catch (err) {
+      console.error('Error saving brief:', err);
+      setError('Failed to save brief');
+    } finally {
+      setSavingBrief(false);
+    }
+  };
+
+  const handleSavePrompt = async () => {
+    setSavingPrompt(true);
+    setError(null);
+    try {
+      const result = await updateProjectPrompt(projectId, promptText);
+      if (result.error) {
+        setError(result.error);
+      } else {
+        setPromptSaved(true);
+        setTimeout(() => setPromptSaved(false), 2000);
+      }
+    } catch (err) {
+      console.error('Error saving prompt:', err);
+      setError('Failed to save prompt');
+    } finally {
+      setSavingPrompt(false);
+    }
+  };
 
   const copyPrompt = () => {
     navigator.clipboard.writeText(promptText);
     alert('SEQUENCE_COPIED_TO_CLIPBOARD');
   };
 
+  if (loading) {
+    return (
+      <div className="w-full min-h-[calc(100vh-180px)] bg-[var(--color-bg)] text-[var(--color-ink)] flex items-center justify-center">
+        <div className="font-mono text-sm text-[var(--color-ink-soft)]">Loading brief data...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full min-h-[calc(100vh-180px)] bg-[var(--color-bg)] text-[var(--color-ink)] flex flex-col gap-8" dir="rtl">
+      {error && (
+        <div className="mx-6 mt-6 p-4 border border-red-500/30 bg-red-500/10 text-red-500 text-sm font-mono flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+          {error}
+        </div>
+      )}
+
       <div className="flex flex-col gap-6 border border-[var(--color-border)] bg-[var(--color-surface)] ">
         <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--color-border)] bg-[var(--color-surface-alt)]/60">
           <div className="flex items-center gap-3 text-[var(--color-ink)]">
@@ -55,24 +113,40 @@ export default function ProjectBriefPage() {
             </div>
           </div>
 
-          <button
-            onClick={() => setIsBriefLocked((prev) => !prev)}
-            className={`text-xs font-mono uppercase flex items-center gap-2 px-3 py-2 border border-[var(--color-border)] transition-colors ${
-              isBriefLocked
-                ? 'text-[var(--color-ink-soft)] hover:text-[var(--color-ink)] hover:border-[var(--color-ink)]'
-                : 'text-[var(--color-accent)] border-[var(--color-accent)]'
-            }`}
-          >
-            {isBriefLocked ? (
-              <>
-                <Lock className="w-3 h-3" /> Read Only
-              </>
-            ) : (
-              <>
-                <Unlock className="w-3 h-3" /> Editing
-              </>
+          <div className="flex items-center gap-3">
+            {briefSaved && (
+              <div className="flex items-center gap-1.5 text-xs font-mono text-green-500">
+                <CheckCircle className="w-3 h-3" /> Saved
+              </div>
             )}
-          </button>
+            <button
+              onClick={() => setIsBriefLocked((prev) => !prev)}
+              className={`text-xs font-mono uppercase flex items-center gap-2 px-3 py-2 border border-[var(--color-border)] transition-colors ${
+                isBriefLocked
+                  ? 'text-[var(--color-ink-soft)] hover:text-[var(--color-ink)] hover:border-[var(--color-ink)]'
+                  : 'text-[var(--color-accent)] border-[var(--color-accent)]'
+              }`}
+            >
+              {isBriefLocked ? (
+                <>
+                  <Lock className="w-3 h-3" /> Read Only
+                </>
+              ) : (
+                <>
+                  <Unlock className="w-3 h-3" /> Editing
+                </>
+              )}
+            </button>
+            {!isBriefLocked && (
+              <button
+                onClick={handleSaveBrief}
+                disabled={savingBrief}
+                className="text-xs font-mono uppercase font-bold px-3 py-2 bg-[var(--color-accent)] text-[var(--color-ink)] hover:opacity-90 disabled:opacity-50 transition-opacity"
+              >
+                {savingBrief ? 'SAVING...' : 'SAVE BRIEF'}
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="flex flex-col lg:flex-row gap-6 px-6 pb-6">
@@ -108,12 +182,17 @@ export default function ProjectBriefPage() {
           </div>
 
           <div className="w-full lg:w-80 border border-[var(--color-border)] bg-[var(--color-surface)] flex flex-col">
-            <div className="bg-[var(--color-bg)] px-4 py-3 border-b border-[var(--color-border)] flex items-center justify-between">
+            <div className="bg-[var(--color-bg)] px-4 py-3 border-b border-[var(--color-border)] flex items-center justify-between flex-wrap gap-2">
               <div className="flex items-center gap-2 text-[var(--color-ink-soft)]">
                 <Terminal className="w-4 h-4 text-[var(--color-accent)]" />
                 <h2 className="text-[11px] font-bold font-mono uppercase tracking-[0.25em]">generation_seed.json</h2>
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
+                {promptSaved && (
+                  <div className="flex items-center gap-1 text-[10px] font-mono text-green-500">
+                    <CheckCircle className="w-3 h-3" /> Saved
+                  </div>
+                )}
                 <button
                   onClick={copyPrompt}
                   className="text-[10px] font-mono font-bold uppercase text-[var(--color-accent)] hover:text-[var(--color-ink)] flex items-center gap-1"
@@ -133,6 +212,15 @@ export default function ProjectBriefPage() {
                     className="text-[10px] font-mono uppercase text-[var(--color-accent)] flex items-center gap-1"
                   >
                     <Unlock className="w-3 h-3" /> Open
+                  </button>
+                )}
+                {!isPromptLocked && (
+                  <button
+                    onClick={handleSavePrompt}
+                    disabled={savingPrompt}
+                    className="text-[10px] font-mono uppercase font-bold px-2 py-1 bg-[var(--color-accent)] text-[var(--color-ink)] hover:opacity-90 disabled:opacity-50 transition-opacity"
+                  >
+                    {savingPrompt ? 'SAVING...' : 'SAVE'}
                   </button>
                 )}
               </div>
