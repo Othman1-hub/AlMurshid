@@ -18,8 +18,8 @@ const buttonBase =
 const inputBase =
   "w-full bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-ink)] px-4 py-3 focus:outline-none focus:border-[var(--color-ink)] font-mono text-sm placeholder-[var(--color-ink-soft)]";
 
-type Theme = "dark" | "light" | "neon" | "sunset" | "sand";
-const themeOptions: Theme[] = ["dark", "light", "neon", "sunset", "sand"];
+type Theme = "dark" | "light" | "neon" | "sunset" | "sand" | "sky" | "pink" | "coffee";
+const themeOptions: Theme[] = ["dark", "light", "neon", "sunset", "sand", "sky", "pink", "coffee"];
 
 export default function SignUpPage() {
   const [theme, setTheme] = useState<Theme>("dark");

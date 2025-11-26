@@ -113,45 +113,91 @@
   }
 
   /* Sunset theme override */
-  .sunset {
-    --color-bg: #0f0a0a;
-    --color-surface: #1a1111;
-    --color-panel: #221616;
-    --color-border: #2f1f1f;
-    --color-border-strong: #433030;
-    --color-ink: #ffe9e3;
-    --color-ink-subtle: #fbd1c4;
-    --color-ink-muted: #f3a28d;
-    --color-ink-dim: #d67965;
-    --color-ink-deep: #a44f3c;
-    --color-ink-soft-contrast: #f5c7b8;
-    --color-ink-soft: #e6a58f;
-    --color-accent: #ff5c8d;
-    --color-accent-strong: #e14a77;
-    --color-surface-alt: #271919;
-    --color-surface-contrast: #120c0c;
+  :root.sunset {
+    --color-bg: #0c1b12;
+    --color-surface: #10251a;
+    --color-surface-alt: #163221;
+    --color-surface-contrast: #39b36b;
+    --color-border: #1e3a2a;
+    --color-border-strong: #39b36b;
+    --color-ink: #e6f3e9;
+    --color-ink-soft: #9cb8a4;
+    --color-accent: #39b36b;
+    --color-accent-strong: #2a8a51;
+    --color-success: #52d18a;
+    --color-gold: #d3a446;
 
     color-scheme: dark;
   }
 
   /* Sand theme override */
-  .sand {
-    --color-bg: #f8f3eb;
-    --color-surface: #ffffff;
-    --color-panel: #f2e9dd;
-    --color-border: #e2d7c6;
-    --color-border-strong: #cbbda8;
-    --color-ink: #1f140a;
-    --color-ink-subtle: #3c2b1c;
-    --color-ink-muted: #5b4634;
-    --color-ink-dim: #7c5e47;
-    --color-ink-deep: #4a3523;
-    --color-ink-soft-contrast: #e6d8c6;
+  :root.sand {
+    --color-bg: #fdf6e3;
+    --color-surface: #f5eacc;
+    --color-surface-alt: #ebe1c5;
+    --color-surface-contrast: #586e75;
+    --color-border: #d6cebf;
+    --color-border-strong: #b58900;
+    --color-ink: #43302b;
     --color-ink-soft: #8d735a;
-    --color-accent: #d97706;
-    --color-accent-strong: #b26205;
-    --color-surface-alt: #efe4d5;
-    --color-surface-contrast: #ffffff;
+    --color-accent: #d94e1f;
+    --color-accent-strong: #a0320d;
+    --color-success: #2aa198;
+    --color-gold: #b58900;
+
+    color-scheme: light;
+  }
+
+  /* Sky theme override */
+  :root.sky {
+    --color-bg: #f0f9ff;
+    --color-surface: #ffffff;
+    --color-surface-alt: #e0f2fe;
+    --color-surface-contrast: #0284c7;
+    --color-border: #bae6fd;
+    --color-border-strong: #38bdf8;
+    --color-ink: #0c4a6e;
+    --color-ink-soft: #475569;
+    --color-accent: #0ea5e9;
+    --color-accent-strong: #0284c7;
+    --color-success: #10b981;
+    --color-gold: #fbbf24;
+
+    color-scheme: light;
+  }
+
+  /* Pink theme override */
+  :root.pink {
+    --color-bg: #fff5f8;
+    --color-surface: #ffffff;
+    --color-surface-alt: #ffe3ec;
+    --color-surface-contrast: #ff6fa5;
+    --color-border: #ffc2d9;
+    --color-border-strong: #ff6fa5;
+    --color-ink: #36121b;
+    --color-ink-soft: #8a4d68;
+    --color-accent: #ff6fa5;
+    --color-accent-strong: #e75480;
+    --color-success: #34d399;
+    --color-gold: #f4b400;
+
+    color-scheme: light;
+  }
+
+  /* Coffee theme override (vanilla, almond, coffee, cabernet, deep oak) */
+  :root.coffee {
+    --color-bg: #ffe6d1;          /* vanilla base */
+    --color-surface: #f7d7b5;     /* almond latte */
+    --color-surface-alt: #e8c196; /* toasted caramel */
+    --color-surface-contrast: #5b1f2a; /* cabernet contrast */
+    --color-border: #d9b089;      /* light oak border */
+    --color-border-strong: #8a3a2f; /* cabernet edge */
+    --color-ink: #2b1a14;         /* deep oak text */
+    --color-ink-soft: #5b3c2d;    /* roasted coffee text */
+    --color-accent: #8a3a2f;      /* cabernet accent */
+    --color-accent-strong: #5b1f2a; /* deep cabernet */
+    --color-success: #3f8f62;     /* herbal green */
+    --color-gold: #c58a3a;        /* warm oak gold */
 
     color-scheme: light;
   }
