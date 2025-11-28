@@ -82,26 +82,30 @@ export async function createTask(
       return { error: "Project not found or unauthorized" };
     }
 
+    // Prepare the data for insertion
+    const insertData = {
+      project_id: projectId,
+      name: taskData.name,
+      description: taskData.description,
+      xp: taskData.xp,
+      difficulty: taskData.difficulty,
+      time_estimate: taskData.time_estimate,
+      tools: taskData.tools || null,
+      hints: taskData.hints || null,
+      status: taskData.status || "not_started",
+      phase_id: taskData.phase_id !== undefined ? taskData.phase_id : null,
+    };
+
+    console.log('Creating task with data:', insertData);
+
     const { data, error } = await supabase
       .from("tasks")
-      .insert([
-        {
-          project_id: projectId,
-          name: taskData.name,
-          description: taskData.description,
-          xp: taskData.xp,
-          difficulty: taskData.difficulty,
-          time_estimate: taskData.time_estimate,
-          tools: taskData.tools || null,
-          hints: taskData.hints || null,
-          status: taskData.status || "not_started",
-          phase_id: taskData.phase_id || null,
-        },
-      ])
+      .insert([insertData])
       .select()
       .single();
 
     if (error) {
+      console.error('Supabase error creating task:', error);
       return { error: error.message };
     }
 

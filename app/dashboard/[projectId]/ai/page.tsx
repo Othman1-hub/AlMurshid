@@ -4,6 +4,8 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useChat } from 'ai/react';
 import { CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface Task {
   id: number;
@@ -119,13 +121,7 @@ export default function ProjectAiPage() {
     ],
     body: {
       projectId,
-      context: {
-        project,
-        tasks,
-        phases,
-        dependencies,
-        memories
-      }
+      // No context needed! API fetches fresh data from Supabase
     },
     onFinish: async (message) => {
       // Check if AI used any tools (tool calls will trigger data refresh)
@@ -231,7 +227,34 @@ export default function ProjectAiPage() {
                     <div className="text-[11px] uppercase font-mono tracking-widest text-[var(--color-ink-soft)] mb-1">
                       {m.role === 'user' ? 'أنت' : 'المرشد'}
                     </div>
-                    <div className="text-sm leading-relaxed whitespace-pre-wrap">{m.content}</div>
+                    <div className="text-sm leading-relaxed">
+                      {m.role === 'assistant' ? (
+                        <ReactMarkdown 
+                          remarkPlugins={[remarkGfm]}
+                          components={{
+                            p: ({node, ...props}) => <p className="mb-2 last:mb-0" {...props} />,
+                            ul: ({node, ...props}) => <ul className="list-disc list-inside mb-2 space-y-1" {...props} />,
+                            ol: ({node, ...props}) => <ol className="list-decimal list-inside mb-2 space-y-1" {...props} />,
+                            li: ({node, ...props}) => <li className="ml-2" {...props} />,
+                            h1: ({node, ...props}) => <h1 className="text-base font-bold mb-2 mt-2" {...props} />,
+                            h2: ({node, ...props}) => <h2 className="text-sm font-bold mb-2 mt-2" {...props} />,
+                            h3: ({node, ...props}) => <h3 className="text-sm font-semibold mb-1 mt-1" {...props} />,
+                            code: ({node, inline, ...props}: any) => 
+                              inline ? 
+                                <code className="bg-[var(--color-bg)] px-1.5 py-0.5 rounded text-xs font-mono border border-[var(--color-border)]" {...props} /> : 
+                                <code className="block bg-[var(--color-bg)] p-3 rounded my-2 text-xs font-mono overflow-x-auto border border-[var(--color-border)]" {...props} />,
+                            strong: ({node, ...props}) => <strong className="font-bold" {...props} />,
+                            em: ({node, ...props}) => <em className="italic" {...props} />,
+                            a: ({node, ...props}) => <a className="text-[var(--color-accent)] underline hover:text-[var(--color-accent-strong)]" {...props} />,
+                            blockquote: ({node, ...props}) => <blockquote className="border-l-2 border-[var(--color-accent)] pl-3 italic my-2" {...props} />,
+                          }}
+                        >
+                          {m.content}
+                        </ReactMarkdown>
+                      ) : (
+                        <div className="whitespace-pre-wrap">{m.content}</div>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}

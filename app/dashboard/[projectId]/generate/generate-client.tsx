@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useChat } from 'ai/react';
 import { isReadyToGenerate } from '@/lib/ai/prompts';
 import { Sparkles, Send, CheckCircle, AlertCircle, Zap, Target, Trophy, Star } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface GeneratePageClientProps {
   projectId: number;
@@ -349,7 +351,33 @@ The more detailed the information, the better and more accurate the plan will be
                       </>
                     )}
                   </div>
-                  <div className="text-sm leading-relaxed whitespace-pre-wrap relative z-10">{m.content}</div>
+                  <div className="text-sm leading-relaxed relative z-10">
+                    {m.role === 'assistant' ? (
+                      <ReactMarkdown 
+                        remarkPlugins={[remarkGfm]}
+                        components={{
+                          p: ({node, ...props}) => <p className="mb-2 last:mb-0" {...props} />,
+                          ul: ({node, ...props}) => <ul className="list-disc list-inside mb-2 space-y-1" {...props} />,
+                          ol: ({node, ...props}) => <ol className="list-decimal list-inside mb-2 space-y-1" {...props} />,
+                          li: ({node, ...props}) => <li className="ml-2" {...props} />,
+                          h1: ({node, ...props}) => <h1 className="text-lg font-bold mb-2 mt-3" {...props} />,
+                          h2: ({node, ...props}) => <h2 className="text-base font-bold mb-2 mt-2" {...props} />,
+                          h3: ({node, ...props}) => <h3 className="text-sm font-bold mb-1 mt-2" {...props} />,
+                          code: ({node, inline, ...props}: any) => 
+                            inline ? 
+                              <code className="bg-black/20 px-1 py-0.5 rounded text-xs font-mono" {...props} /> : 
+                              <code className="block bg-black/30 p-2 rounded my-2 text-xs font-mono overflow-x-auto" {...props} />,
+                          strong: ({node, ...props}) => <strong className="font-bold text-white" {...props} />,
+                          em: ({node, ...props}) => <em className="italic" {...props} />,
+                          a: ({node, ...props}) => <a className="underline hover:text-white" {...props} />,
+                        }}
+                      >
+                        {m.content}
+                      </ReactMarkdown>
+                    ) : (
+                      <div className="whitespace-pre-wrap">{m.content}</div>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}

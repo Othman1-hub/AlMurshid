@@ -8,10 +8,11 @@ import { createClient } from '@/utils/supabase/server';
  */
 export async function GET(
   req: NextRequest,
-  { params }: { params: { projectId: string } }
+  { params }: { params: Promise<{ projectId: string }> }
 ) {
   try {
-    const projectId = parseInt(params.projectId);
+    const { projectId: projectIdStr } = await params;
+    const projectId = parseInt(projectIdStr);
     
     if (isNaN(projectId)) {
       return Response.json({ error: 'Invalid project ID' }, { status: 400 });

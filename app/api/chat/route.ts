@@ -3,21 +3,25 @@ import { PROJECT_PLANNING_SYSTEM_PROMPT, ALMURSHID_ASSISTANT_PROMPT } from '@/li
 import { alMurshidTools } from '@/lib/ai/tools';
 import { getAIModel } from '@/lib/ai/config';
 import { NextRequest } from 'next/server';
+import { createClient } from '@/utils/supabase/server';
 
-export const runtime = 'edge';
+// Use Node.js runtime to support Server Actions with proper authentication
+// Edge runtime has limited cookie/session access which breaks Server Actions
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 /**
  * POST /api/chat
  * 
  * Conversational endpoint for both project planning and project management.
  * - For initial planning (generate page): Uses PROJECT_PLANNING_SYSTEM_PROMPT
- * - For project management (ai page): Uses ALMURSHID_ASSISTANT_PROMPT with project context
+ * - For project management (ai page): Uses ALMURSHID_ASSISTANT_PROMPT with fresh data from DB
  * 
  * Request body:
  * {
  *   messages: Array<{ role: 'user' | 'assistant' | 'system', content: string }>,
  *   projectId?: number,
- *   context?: { tasks: any[], memories: any[] }
+ *   language?: 'ar' | 'en'
  * }
  * 
  * Returns: Streaming text response from configured AI model
@@ -25,7 +29,7 @@ export const runtime = 'edge';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { messages, projectId, context } = body;
+    const { messages, projectId, language } = body;
 
     if (!messages || !Array.isArray(messages)) {
       return new Response('Invalid request: messages array required', { status: 400 });
@@ -35,12 +39,44 @@ export async function POST(req: NextRequest) {
     let systemPrompt = PROJECT_PLANNING_SYSTEM_PROMPT;
     let enhancedMessages = messages;
 
-    // If projectId and context are provided, use المرشد assistant prompt with tools
-    if (projectId && context) {
+    // If projectId is provided, fetch fresh data from Supabase and use المرشد assistant
+    if (projectId) {
+      const supabase = await createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user) {
+        return new Response('Unauthorized', { status: 401 });
+      }
+
+      // Fetch fresh project data directly from database
+      const { data: project } = await supabase
+        .from('projects')
+        .select('*')
+        .eq('id', projectId)
+        .eq('user_id', user.id)
+        .single();
+
+      if (!project) {
+        return new Response('Project not found', { status: 404 });
+      }
+
+      // Fetch all related data in parallel for efficiency
+      const [
+        { data: tasks },
+        { data: phases },
+        { data: dependencies },
+        { data: memories }
+      ] = await Promise.all([
+        supabase.from('tasks').select('*').eq('project_id', projectId).order('created_at', { ascending: true }),
+        supabase.from('phases').select('*').eq('project_id', projectId).order('order_index', { ascending: true }),
+        supabase.from('task_dependencies').select('*').eq('project_id', projectId),
+        supabase.from('memory').select('*').eq('project_id', projectId)
+      ]);
+
       systemPrompt = ALMURSHID_ASSISTANT_PROMPT;
       
-      // Build comprehensive context info
-      const { project, tasks, phases, dependencies, memories } = context;
+      // Build comprehensive context info from fresh database data
+      const context = { project, tasks: tasks || [], phases: phases || [], dependencies: dependencies || [], memories: memories || [] };
       
       // Group tasks by phase
       const tasksByPhase: Record<number, any[]> = {};
@@ -111,10 +147,13 @@ export async function POST(req: NextRequest) {
       const contextInfo = `
 معلومات المشروع الحالية:
 
-📁 **المشروع**: ${project?.name || 'غير محدد'}
+🆔 **معرف المشروع (Project ID)**: ${projectId}
+📁 **اسم المشروع**: ${project?.name || 'غير محدد'}
 📝 **الوصف**: ${project?.description || 'لا يوجد وصف'}
 ${project?.breif ? `📄 **الملخص**: متوفر (${project.breif.length} حرف)\n` : ''}
 ${project?.prompt ? `🤖 **موجه AI**: متوفر\n` : ''}
+
+⚠️ **مهم**: استخدم معرف المشروع ${projectId} في جميع عمليات الأدوات (createTask, updateTask, إلخ)
 
 📊 **إحصائيات المهام**:
 - الإجمالي: ${totalTasks} مهمة
@@ -142,9 +181,9 @@ ${dependenciesInfo}${constantsInfo}${fragmentsInfo}
       system: systemPrompt,
       messages: enhancedMessages,
       temperature: 0.7,
-      maxTokens: projectId && context ? 2000 : 1000,
-      tools: projectId && context ? alMurshidTools : undefined,
-      toolChoice: projectId && context ? 'auto' : undefined,
+      maxTokens: projectId ? 2000 : 1000,
+      tools: projectId ? alMurshidTools : undefined,
+      toolChoice: projectId ? 'auto' : undefined,
       maxSteps: 5,
     });
 
