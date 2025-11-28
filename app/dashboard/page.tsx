@@ -78,12 +78,13 @@ function SubmitButton() {
   );
 }
 
-export default  function DashboardPage() {
-  
+export default function DashboardPage() {
   const [theme, setTheme] = useState<Theme>(() => {
-    if (typeof window === 'undefined') return 'dark';
-    const stored = window.localStorage.getItem('almurshed-theme');
-    return stored && themeOptions.includes(stored as Theme) ? (stored as Theme) : 'dark';
+    if (typeof window === "undefined") return "dark";
+    const stored = window.localStorage.getItem("almurshed-theme");
+    return stored && themeOptions.includes(stored as Theme)
+      ? (stored as Theme)
+      : "dark";
   });
   const [streak, setStreak] = useState(14);
   const [loading, setLoading] = useState(true);
@@ -225,6 +226,52 @@ export default  function DashboardPage() {
       {/* INJECTED CSS VARIABLES */}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;700&family=JetBrains+Mono:wght@400;700&display=swap');
+        
+        :root, :root.dark {
+          --color-bg: #050505;
+          --color-surface: #0A0A0A;
+          --color-surface-alt: #111111;
+          --color-surface-contrast: #ffffff;
+          --color-border: #222222;
+          --color-border-strong: #444444;
+          --color-ink: #ffffff;
+          --color-ink-soft: #888888;
+          --color-accent: #0044FF;
+          --color-accent-strong: #0033CC;
+          --color-success: #00FF9D;
+          --color-gold: #FFD700;
+        }
+
+        :root.light {
+          --color-bg: #ffffff;
+          --color-surface: #f8f9fa;
+          --color-surface-alt: #f1f3f5;
+          --color-surface-contrast: #000000;
+          --color-border: #e9ecef;
+          --color-border-strong: #dee2e6;
+          --color-ink: #212529;
+          --color-ink-soft: #868e96;
+          --color-accent: #0044FF;
+          --color-accent-strong: #0033CC;
+          --color-success: #00aa63;
+          --color-gold: #d4af37;
+        }
+
+        :root.neon {
+          --color-bg: #0a0a12;
+          --color-surface: #13131f;
+          --color-surface-alt: #1c1c2e;
+          --color-surface-contrast: #00F3FF;
+          --color-border: #2d2d45;
+          --color-border-strong: #00F3FF;
+          --color-ink: #e0e6ed;
+          --color-ink-soft: #6b7280;
+          --color-accent: #00F3FF;
+          --color-accent-strong: #00c4cc;
+          --color-success: #39ff14;
+          --color-gold: #ff00ff;
+        }
+
         body { font-family: 'IBM Plex Sans Arabic', sans-serif; }
         .font-mono { font-family: 'JetBrains Mono', monospace; }
         
@@ -612,79 +659,75 @@ export default  function DashboardPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {projects.map((proj) => (
               <Link href={`dashboard/${proj.id}`} key={proj.id}>
-                <div
-                  key={proj.id}
-                  className="group relative bg-[var(--color-bg)] border border-[var(--color-border)] hover:border-[var(--color-accent)] transition-all p-6 flex flex-col justify-between min-h-[240px]"
-                >
-                  {/* Hover Corner Effect */}
-                  <div className="absolute top-0 right-0 w-0 h-0 border-t-[20px] border-r-[20px] border-t-transparent border-r-[var(--color-accent)] opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                {/* Hover Corner Effect */}
+                <div className="absolute top-0 right-0 w-0 h-0 border-t-[20px] border-r-[20px] border-t-transparent border-r-[var(--color-accent)] opacity-0 group-hover:opacity-100 transition-opacity"></div>
 
-                  {/* Top Bar */}
-                  <div className="flex justify-between items-start mb-6">
-                    <div
-                      className={`px-2 py-1 text-[10px] font-mono uppercase tracking-widest border ${
-                        statusColor[proj.status]
-                      }`}
-                    >
-                      {proj.status}
-                    </div>
-                    <div className="font-mono text-xs text-[var(--color-ink-soft)] group-hover:text-[var(--color-ink)] transition-colors">
-                      {proj.id}
-                    </div>
+                {/* Top Bar */}
+                <div className="flex justify-between items-start mb-6">
+                  <div
+                    className={`px-2 py-1 text-[10px] font-mono uppercase tracking-widest border ${
+                      statusColor[proj.status]
+                    }`}
+                  >
+                    {proj.status}
                   </div>
+                  <div className="font-mono text-xs text-[var(--color-ink-soft)] group-hover:text-[var(--color-ink)] transition-colors">
+                    {proj.id}
+                  </div>
+                </div>
 
-                  {/* Content */}
-                  <div className="flex-1">
-                    {editingId === proj.id ? (
-                      <div className="flex flex-col gap-2 animate-in fade-in zoom-in-95 duration-200">
-                        <input
-                          value={editingName}
-                          onChange={(e) => setEditingName(e.target.value)}
-                          className="w-full bg-[var(--color-surface-alt)] border border-[var(--color-border)] p-2 text-sm font-bold focus:outline-none focus:border-[var(--color-accent)]"
-                          autoFocus
-                        />
-                        <div className="flex gap-2 mt-2">
-                          <button
-                            onClick={() => handleSaveName(proj.id)}
-                            className="text-xs bg-[var(--color-accent)] text-white px-3 py-1 font-bold hover:bg-[var(--color-accent-strong)]"
-                          >
-                            SAVE
-                          </button>
-                          <button
-                            onClick={() => setEditingId(null)}
-                            className="text-xs border border-[var(--color-border)] px-3 py-1 hover:bg-[var(--color-surface-alt)]"
-                          >
-                            CANCEL
-                          </button>
-                        </div>
+                {/* Content */}
+                <div className="flex-1">
+                  {editingId === proj.id ? (
+                    <div className="flex flex-col gap-2 animate-in fade-in zoom-in-95 duration-200">
+                      <input
+                        value={editingName}
+                        onChange={(e) => setEditingName(e.target.value)}
+                        className="w-full bg-[var(--color-surface-alt)] border border-[var(--color-border)] p-2 text-sm font-bold focus:outline-none focus:border-[var(--color-accent)]"
+                        autoFocus
+                      />
+                      <div className="flex gap-2 mt-2">
+                        <button
+                          onClick={() => handleSaveName(proj.id)}
+                          className="text-xs bg-[var(--color-accent)] text-white px-3 py-1 font-bold hover:bg-[var(--color-accent-strong)]"
+                        >
+                          SAVE
+                        </button>
+                        <button
+                          onClick={() => setEditingId(null)}
+                          className="text-xs border border-[var(--color-border)] px-3 py-1 hover:bg-[var(--color-surface-alt)]"
+                        >
+                          CANCEL
+                        </button>
                       </div>
-                    ) : (
-                      <h3
-                        className="text-xl font-bold mb-2 group-hover:text-[var(--color-accent)] transition-colors cursor-pointer"
-                        onClick={() => {
-                          setEditingId(proj.id);
-                          setEditingName(proj.name);
-                        }}
-                      >
-                        {proj.name}
-                      </h3>
-                    )}
-                    <div className="text-xs text-[var(--color-ink-soft)] font-mono mt-4 flex gap-4 border-t border-[var(--color-border)] pt-4 border-dashed">
-                      <span className="flex items-center gap-1">
-                        <Activity className="w-3 h-3" /> {proj.tasks} TASKS
-                      </span>
-                      <span>ETA: {proj.eta}</span>
                     </div>
+                  ) : (
+                    <h3
+                      className="text-xl font-bold mb-2 group-hover:text-[var(--color-accent)] transition-colors cursor-pointer"
+                      onClick={() => {
+                        setEditingId(proj.id);
+                        setEditingName(proj.name);
+                      }}
+                    >
+                      {proj.name}
+                    </h3>
+                  )}
+                  <div className="text-xs text-[var(--color-ink-soft)] font-mono mt-4 flex gap-4 border-t border-[var(--color-border)] pt-4 border-dashed">
+                    <span className="flex items-center gap-1">
+                      <Activity className="w-3 h-3" /> {proj.tasks} TASKS
+                    </span>
+                    <span>ETA: {proj.eta}</span>
                   </div>
+                </div>
 
-                  {/* Footer / Progress */}
-                  <div className="mt-6">
-                    {/* Reward Pill */}
-                    <div className="mb-3 flex justify-end">
-                      <span className="text-[9px] font-mono text-[var(--color-gold)] bg-[var(--color-gold)]/10 border border-[var(--color-gold)]/30 px-2 py-0.5">
-                        REWARD: {proj.xpReward} XP
-                      </span>
-                    </div>
+                {/* Footer / Progress */}
+                <div className="mt-6">
+                  {/* Reward Pill */}
+                  <div className="mb-3 flex justify-end">
+                    <span className="text-[9px] font-mono text-[var(--color-gold)] bg-[var(--color-gold)]/10 border border-[var(--color-gold)]/30 px-2 py-0.5">
+                      REWARD: {proj.xpReward} XP
+                    </span>
+                  </div>
 
                   <div className="mb-3">
                     <Link
@@ -706,18 +749,26 @@ export default  function DashboardPage() {
                       style={{ width: `${proj.progress}%` }}
                     />
                   </div>
-                  
+
                   {/* Action Overlay */}
                   <div className="absolute bottom-4 left-4 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-                    <button 
-                      onClick={() => { setEditingId(proj.id); setEditingName(proj.name); }}
+                    <button
+                      onClick={() => {
+                        setEditingId(proj.id);
+                        setEditingName(proj.name);
+                      }}
                       className="p-1.5 hover:bg-[var(--color-surface-alt)] text-[var(--color-ink-soft)] hover:text-[var(--color-accent)] transition-colors"
                       title="Edit Name"
                     >
                       <Edit2 className="w-3 h-3" />
                     </button>
-                    <button 
-                      onClick={() => confirm('Delete?') && setProjects(prev => prev.filter(p => p.id !== proj.id))}
+                    <button
+                      onClick={() =>
+                        confirm("Delete?") &&
+                        setProjects((prev) =>
+                          prev.filter((p) => p.id !== proj.id)
+                        )
+                      }
                       className="p-1.5 hover:bg-[var(--color-surface-alt)] text-[var(--color-ink-soft)] hover:text-red-500 transition-colors"
                       title="Delete Project"
                     >
