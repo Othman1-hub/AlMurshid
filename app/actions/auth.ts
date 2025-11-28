@@ -35,7 +35,7 @@ export async function signUp(prevState: any, formData: FormData) {
     password: password,
     options: {
       data: {
-        full_name: fullName,
+        display_name: fullName,
       },
     },
   };
@@ -57,19 +57,25 @@ export async function signOut() {
   redirect("/");
 }
 
-export async function getUser(){
+export async function getUser() {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   const { data: profile } = await supabase
     .from("profiles")
-    .select("*").eq("id", user?.id).single();
+    .select("*")
+    .eq("id", user?.id)
+    .single();
   return profile;
 }
 
 export async function getUserDashboardData() {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   if (!user) {
     return null;
   }
@@ -88,9 +94,9 @@ export async function getUserDashboardData() {
     .eq("user_id", user.id);
 
   // Fetch tasks for all user projects with counts
-  const projectIds = projects?.map(p => p.id) || [];
+  const projectIds = projects?.map((p) => p.id) || [];
   let tasksData: any[] = [];
-  
+
   if (projectIds.length > 0) {
     const { data: tasks } = await supabase
       .from("tasks")
@@ -101,18 +107,23 @@ export async function getUserDashboardData() {
 
   return {
     profile,
-    projects: (projects || []).map(proj => {
-      const projTasks = tasksData.filter(t => t.project_id === proj.id);
-      const completedTasks = projTasks.filter(t => t.status === 'completed').length;
-      const progress = projTasks.length > 0 ? Math.round((completedTasks / projTasks.length) * 100) : 0;
+    projects: (projects || []).map((proj) => {
+      const projTasks = tasksData.filter((t) => t.project_id === proj.id);
+      const completedTasks = projTasks.filter(
+        (t) => t.status === "completed"
+      ).length;
+      const progress =
+        projTasks.length > 0
+          ? Math.round((completedTasks / projTasks.length) * 100)
+          : 0;
       const totalXp = projTasks.reduce((sum, t) => sum + (t.xp || 0), 0);
-      
+
       return {
         id: proj.id.toString(),
         name: proj.name,
         description: proj.description,
-        status: 'Active',
-        eta: 'TBD',
+        status: "Active",
+        eta: "TBD",
         tasks: projTasks.length,
         progress,
         xpReward: totalXp,
@@ -122,7 +133,9 @@ export async function getUserDashboardData() {
     stats: {
       totalXp: profile?.total_xp || 0,
       level: profile?.level || 1,
-      username: profile?.username || 'User',
-    }
+      username: profile?.username || "User",
+      streak: (profile as any)?.streak ?? 0,
+      userProfilePicture: profile?.avatar_url || null,
+    },
   };
 }
