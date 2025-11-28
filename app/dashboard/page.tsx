@@ -1,19 +1,56 @@
-'use client';
+"use client";
 
-import React, { useActionState, useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Plus, Sparkles, Activity, Edit2, Trash2, LayoutGrid, Server, Database, Cpu, ChevronDown, AlertCircle, Flame, Trophy, Target, Zap, Award, Shield } from 'lucide-react';
-import Link from 'next/link';
-import { useFormState, useFormStatus } from 'react-dom';
-import { getUserDashboardData, signOut } from '../actions/auth';
-import { addProject } from '../actions/projects';
+import React, { useActionState, useEffect, useMemo, useState } from "react";
+import {
+  ArrowLeft,
+  Plus,
+  Sparkles,
+  Activity,
+  Edit2,
+  Trash2,
+  LayoutGrid,
+  Server,
+  Database,
+  Cpu,
+  ChevronDown,
+  AlertCircle,
+  Flame,
+  Trophy,
+  Target,
+  Zap,
+  Award,
+  Shield,
+} from "lucide-react";
+import Link from "next/link";
+import { useFormState, useFormStatus } from "react-dom";
+import { getUserDashboardData, signOut } from "../actions/auth";
+import { addProject } from "../actions/projects";
+import Image from "next/image";
 
-type Theme = 'dark' | 'light' | 'neon' | 'sunset' | 'sand' | 'sky' | 'pink' | 'coffee';
-const themeOptions: Theme[] = ['dark', 'light', 'neon', 'sunset', 'sand', 'sky', 'pink', 'coffee'];
+type Theme =
+  | "dark"
+  | "light"
+  | "neon"
+  | "sunset"
+  | "sand"
+  | "sky"
+  | "pink"
+  | "coffee";
+const themeOptions: Theme[] = [
+  "dark",
+  "light",
+  "neon",
+  "sunset",
+  "sand",
+  "sky",
+  "pink",
+  "coffee",
+];
 
 type Project = {
   id: string;
   name: string;
-  status: 'Active' | 'Planning' | 'Paused' | 'Review';
+  status: "Active" | "Planning" | "Paused" | "Review";
   eta: string;
   tasks: number;
   progress: number;
@@ -29,39 +66,51 @@ type Quest = {
 
 function SubmitButton() {
   const { pending } = useFormStatus();
-  
+
   return (
     <button
       type="submit"
       disabled={pending}
       className="px-6 py-3 bg-[var(--color-accent)] text-white border border-[var(--color-accent)] text-xs font-mono font-bold hover:bg-[var(--color-accent-strong)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-[0_0_20px_-5px_var(--color-accent)]"
     >
-      {pending ? 'EXECUTING...' : 'EXECUTE_CREATE'}
+      {pending ? "EXECUTING..." : "EXECUTE_CREATE"}
     </button>
   );
 }
 
-export default  function DashboardPage() {
-  
-  const [theme, setTheme] = useState<Theme>('dark');
+export default function DashboardPage() {
+  const [theme, setTheme] = useState<Theme>(() => {
+    if (typeof window === "undefined") return "dark";
+    const stored = window.localStorage.getItem("almurshed-theme");
+    return stored && themeOptions.includes(stored as Theme)
+      ? (stored as Theme)
+      : "dark";
+  });
   const [streak, setStreak] = useState(14);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   // User data state
-  const [username, setUsername] = useState('أحمد عبد الله');
-  const [userLevel, setUserLevel] = useState(7);
-  const [totalXp, setTotalXp] = useState(42500);
-  const [currentXp, setCurrentXp] = useState(3820);
-  
+  const [username, setUsername] = useState("");
+  const [userLevel, setUserLevel] = useState<number | null>(null);
+  const [totalXp, setTotalXp] = useState<number | null>(null);
+  const [currentXp, setCurrentXp] = useState(0);
+  const [userProfilePicture, setUserProfilePicture] = useState<string | null>(
+    null
+  );
+
   // New: Daily Quests Data
   const [dailyQuests, setDailyQuests] = useState<Quest[]>([]);
 
   const [projects, setProjects] = useState<Project[]>([]);
-  
+
   const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editingName, setEditingName] = useState('');
+  const [editingName, setEditingName] = useState("");
+
+  const Skeleton = ({ className = "" }: { className?: string }) => (
+    <div className={`skeleton ${className}`} aria-hidden />
+  );
 
   // Fetch dashboard data on mount
   useEffect(() => {
@@ -69,17 +118,19 @@ export default  function DashboardPage() {
       try {
         setLoading(true);
         const data = await getUserDashboardData();
-        
+
         if (data) {
           setUsername(data.stats.username);
           setUserLevel(data.stats.level);
           setTotalXp(data.stats.totalXp);
           setProjects(data.projects as Project[]);
           setCurrentXp(Math.min(data.stats.totalXp % 5000, 5000)); // XP towards next level
+          setUserProfilePicture(data.stats.userProfilePicture || null);
+          setStreak(data.stats.streak ?? 0);
         }
       } catch (err) {
-        console.error('Failed to fetch dashboard data:', err);
-        setError('Failed to load dashboard data');
+        console.error("Failed to fetch dashboard data:", err);
+        setError("Failed to load dashboard data");
       } finally {
         setLoading(false);
       }
@@ -89,40 +140,54 @@ export default  function DashboardPage() {
   }, []);
 
   useEffect(() => {
-    const stored = typeof window !== 'undefined' ? localStorage.getItem('almurshed-theme') : null;
+    const stored =
+      typeof window !== "undefined"
+        ? localStorage.getItem("almurshed-theme")
+        : null;
     if (stored && themeOptions.includes(stored as Theme)) {
       setTheme(stored as Theme);
     }
   }, []);
 
   useEffect(() => {
-    if (typeof document !== 'undefined') {
+    if (typeof document !== "undefined") {
       const root = document.documentElement;
       root.classList.remove(...themeOptions);
       root.classList.add(theme);
-      localStorage.setItem('almurshed-theme', theme);
+      localStorage.setItem("almurshed-theme", theme);
     }
   }, [theme]);
 
-  const xp = 3820;
+  const xp = currentXp;
   const nextLevel = 5000;
-  const xpProgress = Math.min(100, Math.round((xp / nextLevel) * 100));
-  const title = xp > 4000 ? 'Chief Architect' : 'Systems Lead';
+  const xpProgress = loading
+    ? 0
+    : Math.min(100, Math.round((xp / nextLevel) * 100));
+  const title = (totalXp ?? 0) > 4000 ? "Chief Architect" : "Systems Lead";
+  const initials = useMemo(() => {
+    const parts = username.trim().split(/\s+/).filter(Boolean);
+    const letters = (parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "");
+    return (letters || username.slice(0, 2) || "U").toUpperCase();
+  }, [username]);
 
   const statusColor = useMemo(
     () => ({
-      Active: 'border-[var(--color-accent)] text-[var(--color-accent)] bg-[var(--color-accent)]/5',
-      Review: 'border-[var(--color-ink)] text-[var(--color-ink)] bg-[var(--color-surface-alt)]',
-      Planning: 'border-[var(--color-ink-soft)] text-[var(--color-ink-soft)] border-dashed',
-      Paused: 'border-[var(--color-border)] text-[var(--color-ink-soft)] opacity-60',
+      Active:
+        "border-[var(--color-accent)] text-[var(--color-accent)] bg-[var(--color-accent)]/5",
+      Review:
+        "border-[var(--color-ink)] text-[var(--color-ink)] bg-[var(--color-surface-alt)]",
+      Planning:
+        "border-[var(--color-ink-soft)] text-[var(--color-ink-soft)] border-dashed",
+      Paused:
+        "border-[var(--color-border)] text-[var(--color-ink-soft)] opacity-60",
     }),
     []
   );
 
-  const [formState, formAction] = useActionState(addProject, { 
-    error: undefined, 
-    success: undefined, 
-    values: { name: undefined, description: undefined } 
+  const [formState, formAction] = useActionState(addProject, {
+    error: undefined,
+    success: undefined,
+    values: { name: undefined, description: undefined },
   });
 
   useEffect(() => {
@@ -140,13 +205,17 @@ export default  function DashboardPage() {
   }, [formState.success]);
 
   const handleSaveName = (id: string) => {
-    setProjects((prev) => prev.map((p) => (p.id === id ? { ...p, name: editingName || p.name } : p)));
+    setProjects((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, name: editingName || p.name } : p))
+    );
     setEditingId(null);
-    setEditingName('');
+    setEditingName("");
   };
 
   const toggleQuest = (id: number) => {
-    setDailyQuests(prev => prev.map(q => q.id === id ? { ...q, completed: !q.completed } : q));
+    setDailyQuests((prev) =>
+      prev.map((q) => (q.id === id ? { ...q, completed: !q.completed } : q))
+    );
   };
 
   return (
@@ -169,8 +238,8 @@ export default  function DashboardPage() {
           --color-ink-soft: #888888;
           --color-accent: #0044FF;
           --color-accent-strong: #0033CC;
-          --color-success: #00FF9D; /* New: Success Color for gamification */
-          --color-gold: #FFD700;    /* New: Gold for rewards */
+          --color-success: #00FF9D;
+          --color-gold: #FFD700;
         }
 
         :root.light {
@@ -214,12 +283,32 @@ export default  function DashboardPage() {
         }
 
         .tech-border-b { border-bottom: 1px solid var(--color-border); }
+
+        .skeleton {
+          position: relative;
+          overflow: hidden;
+          background: linear-gradient(90deg, rgba(255,255,255,0.05), rgba(255,255,255,0.08));
+          background-color: var(--color-surface-alt);
+          border: 1px solid var(--color-border);
+        }
+
+        .skeleton::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(120deg, transparent, rgba(255,255,255,0.2), transparent);
+          transform: translateX(-100%);
+          animation: shimmer 1.4s infinite;
+        }
+
+        @keyframes shimmer {
+          100% { transform: translateX(100%); }
+        }
       `}</style>
 
       {/* Header */}
       <div className="tech-border-b bg-[var(--color-bg)]/90 backdrop-blur-md sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          
           <div className="flex items-center gap-4">
             <div className="w-10 h-10 bg-[var(--color-accent)] flex items-center justify-center rounded-none">
               <Cpu className="w-5 h-5 text-white" />
@@ -236,12 +325,18 @@ export default  function DashboardPage() {
 
           <div className="flex items-center gap-6">
             {/* NEW: Gamified Streak Counter */}
-            <div className="hidden md:flex items-center gap-2 px-3 py-1 border border-[var(--color-border)] bg-[var(--color-surface-alt)]">
+            <div className="hidden md:flex items-center gap-2 px-3 py-1 border border-[var(--color-border)] bg-[var(--color-surface-alt)] min-w-[140px]">
               <Flame className="w-4 h-4 text-[var(--color-gold)] fill-[var(--color-gold)] animate-pulse" />
-              <div className="text-xs font-mono font-bold">
-                <span className="text-[var(--color-ink)]">{streak}</span>
-                <span className="text-[var(--color-ink-soft)] ml-1">DAY_STREAK</span>
-              </div>
+              {loading ? (
+                <Skeleton className="h-4 w-16" />
+              ) : (
+                <div className="text-xs font-mono font-bold">
+                  <span className="text-[var(--color-ink)]">{streak ?? 0}</span>
+                  <span className="text-[var(--color-ink-soft)] ml-1">
+                    DAY_STREAK
+                  </span>
+                </div>
+              )}
             </div>
 
             <div className="h-6 w-px bg-[var(--color-border)]"></div>
@@ -254,19 +349,21 @@ export default  function DashboardPage() {
                   className="appearance-none bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-ink)] px-3 py-1 pr-8 focus:outline-none focus:border-[var(--color-accent)] rounded-none cursor-pointer font-bold"
                 >
                   {themeOptions.map((opt) => (
-                    <option key={opt} value={opt}>{opt.toUpperCase()}</option>
+                    <option key={opt} value={opt}>
+                      {opt.toUpperCase()}
+                    </option>
                   ))}
                 </select>
                 <ChevronDown className="w-3 h-3 absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--color-ink-soft)]" />
               </div>
             </div>
 
-            <div className="h-6 w-px bg-[var(--color-border)]"  ></div>
+            <div className="h-6 w-px bg-[var(--color-border)]"></div>
 
             <Link
-            onClick={async ()=>{
+              onClick={async () => {
                 await signOut();
-            }} 
+              }}
               href="/"
               className="flex items-center gap-2 text-xs font-mono font-bold text-[var(--color-ink-soft)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-alt)] px-3 py-2 border border-transparent hover:border-[var(--color-border)] transition-all"
             >
@@ -279,72 +376,144 @@ export default  function DashboardPage() {
 
       <main className="max-w-7xl mx-auto px-6 py-10 space-y-12 relative">
         <div className="absolute inset-0 bg-grid-pattern pointer-events-none opacity-[0.03] z-0" />
-        
+
         {/* Profile & Stats Section */}
         <section className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-px bg-[var(--color-border)] border border-[var(--color-border)]">
-          
           {/* User Info & XP (Left) */}
           <div className="lg:col-span-4 bg-[var(--color-bg)] p-8 flex flex-col justify-between min-h-[200px]">
             <div className="flex items-start justify-between">
               <div>
-                <h1 className="text-2xl font-bold mb-1">{username}</h1>
-                <div className="text-xs font-mono text-[var(--color-accent)] uppercase tracking-widest mb-4 flex items-center gap-2">
-                  <div className="w-2 h-2 bg-[var(--color-accent)] rounded-full animate-pulse" />
-                  {title} {/* ID: {userLevel} */}
-                </div>
-                <div className="inline-flex items-center gap-2 text-[10px] font-mono uppercase border border-[var(--color-border-strong)] bg-[var(--color-surface-alt)] px-2 py-1 text-[var(--color-ink)]">
-                  <Activity className="w-3 h-3 text-[var(--color-accent)]" /> Level {String(userLevel).padStart(2, '0')}
-                </div>
+                {loading ? (
+                  <div className="space-y-2">
+                    <Skeleton className="h-6 w-32" />
+                    <Skeleton className="h-3 w-28" />
+                    <Skeleton className="h-6 w-24" />
+                  </div>
+                ) : (
+                  <>
+                    <h1 className="text-2xl font-bold mb-1">{username}</h1>
+                    <div className="text-xs font-mono text-[var(--color-accent)] uppercase tracking-widest mb-4 flex items-center gap-2">
+                      <div className="w-2 h-2 bg-[var(--color-accent)] rounded-full animate-pulse" />
+                      {title} {/* ID: {userLevel} */}
+                    </div>
+                    <div className="inline-flex items-center gap-2 text-[10px] font-mono uppercase border border-[var(--color-border-strong)] bg-[var(--color-surface-alt)] px-2 py-1 text-[var(--color-ink)]">
+                      <Activity className="w-3 h-3 text-[var(--color-accent)]" />{" "}
+                      Level {String(userLevel ?? 0).padStart(2, "0")}
+                    </div>
+                  </>
+                )}
               </div>
-              
+
               {/* Rank Badge */}
               <div className="relative group cursor-help">
-                <div className="w-16 h-16 bg-[var(--color-surface-alt)] border border-[var(--color-border)] flex items-center justify-center relative overflow-hidden">
-                  <div className="absolute top-0 right-0 w-0 h-0 border-t-[20px] border-r-[20px] border-t-transparent border-r-[var(--color-gold)]"></div>
-                  <span className="font-mono text-2xl font-bold text-[var(--color-ink-soft)]">{username.charAt(0)}</span>
-                </div>
+                {loading ? (
+                  <Skeleton className="w-16 h-16 rounded-full border border-[var(--color-border)]" />
+                ) : (
+                  <div className="relative w-16 h-16">
+                    <div className="absolute inset-0 rounded-full bg-gradient-to-br from-[var(--color-accent)] via-[var(--color-gold)] to-[var(--color-ink)] opacity-60 blur-sm" />
+                    <div className="relative w-full h-full rounded-full overflow-hidden border border-[var(--color-border-strong)] bg-[var(--color-surface-alt)] shadow-[0_0_0_2px_var(--color-bg)]">
+                      {userProfilePicture ? (
+                        <Image
+                          src={userProfilePicture}
+                          alt="user profile picture"
+                          fill
+                          sizes="64px"
+                          className="object-cover"
+                        />
+                      ) : (
+                        <div className="flex items-center justify-center w-full h-full text-xl font-bold font-mono text-[var(--color-ink)] bg-[var(--color-accent)]/10">
+                          {initials}
+                        </div>
+                      )}
+                      <div className="absolute inset-0 pointer-events-none opacity-40 bg-[radial-gradient(circle_at_30%_30%,var(--color-ink)/10,transparent_45%),radial-gradient(circle_at_70%_70%,var(--color-accent)/10,transparent_40%)]" />
+                    </div>
+                  </div>
+                )}
                 <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 hidden group-hover:block bg-[var(--color-surface)] border border-[var(--color-border)] p-2 text-[10px] font-mono whitespace-nowrap z-20">
                   RANK: ALPHA ARCHITECT
                 </div>
               </div>
             </div>
-            
+
             {/* XP System Bar */}
             <div className="mt-8">
-              <div className="flex justify-between text-[10px] font-mono mb-2 text-[var(--color-ink-soft)]">
-                <span>SYSTEM_CHARGE (XP)</span>
-                <span className="text-[var(--color-accent)]">{currentXp} / {nextLevel}</span>
-              </div>
-              <div className="h-3 w-full bg-[var(--color-surface-alt)] relative overflow-hidden border border-[var(--color-border)]">
-                <div 
-                  className="h-full bg-[var(--color-accent)] absolute top-0 right-0 transition-all duration-500"
-                  style={{ width: `${xpProgress}%` }} 
-                />
-                {/* Grid lines over bar */}
-                <div className="absolute inset-0 bg-[url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAAIklEQVQIW2NkQAKrVq36zwjjgzhhZWGMYAEYB8RmROaABADeOQ8CXl/xfgAAAABJRU5ErkJggg==')] opacity-30"></div>
-              </div>
-              <div className="mt-1 flex justify-between text-[9px] font-mono text-[var(--color-ink-soft)]">
-                <span>NEXT_REWARD: UNLOCK_BETA_ACCESS</span>
-                <span>{(xpProgress).toFixed(1)}% LOADED</span>
-              </div>
+              {loading ? (
+                <div className="space-y-3">
+                  <Skeleton className="h-3 w-36" />
+                  <Skeleton className="h-3 w-full" />
+                  <div className="flex justify-between text-[9px] font-mono text-[var(--color-ink-soft)]">
+                    <Skeleton className="h-3 w-32" />
+                    <Skeleton className="h-3 w-20" />
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="flex justify-between text-[10px] font-mono mb-2 text-[var(--color-ink-soft)]">
+                    <span>SYSTEM_CHARGE (XP)</span>
+                    <span className="text-[var(--color-accent)]">
+                      {currentXp} / {nextLevel}
+                    </span>
+                  </div>
+                  <div className="h-3 w-full bg-[var(--color-surface-alt)] relative overflow-hidden border border-[var(--color-border)]">
+                    <div
+                      className="h-full bg-[var(--color-accent)] absolute top-0 right-0 transition-all duration-500"
+                      style={{ width: `${xpProgress}%` }}
+                    />
+                    {/* Grid lines over bar */}
+                    <div className="absolute inset-0 bg-[url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAAIklEQVQIW2NkQAKrVq36zwjjgzhhZWGMYAEYB8RmROaABADeOQ8CXl/xfgAAAABJRU5ErkJggg==')] opacity-30"></div>
+                  </div>
+                  <div className="mt-1 flex justify-between text-[9px] font-mono text-[var(--color-ink-soft)]">
+                    <span>NEXT_REWARD: UNLOCK_BETA_ACCESS</span>
+                    <span>{xpProgress.toFixed(1)}% LOADED</span>
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
           {/* Gamified Stats Grid (Right) */}
           <div className="lg:col-span-5 grid grid-cols-2 gap-px bg-[var(--color-border)]">
             {[
-              { label: "Total XP Earned", value: totalXp > 0 ? `${(totalXp / 1000).toFixed(1)}k` : "0", icon: <Zap className="w-4 h-4" /> },
-              { label: "Quest Completion", value: "94%", icon: <Target className="w-4 h-4" /> },
-              { label: "Focus Efficiency", value: "+18%", icon: <Sparkles className="w-4 h-4" /> },
-              { label: "Active Badges", value: "05", icon: <Award className="w-4 h-4" /> }
+              {
+                label: "Total XP Earned",
+                value:
+                  (totalXp ?? 0) > 0
+                    ? `${((totalXp ?? 0) / 1000).toFixed(1)}k`
+                    : "0",
+                icon: <Zap className="w-4 h-4" />,
+              },
+              {
+                label: "Quest Completion",
+                value: "94%",
+                icon: <Target className="w-4 h-4" />,
+              },
+              {
+                label: "Focus Efficiency",
+                value: "+18%",
+                icon: <Sparkles className="w-4 h-4" />,
+              },
+              {
+                label: "Active Badges",
+                value: "05",
+                icon: <Award className="w-4 h-4" />,
+              },
             ].map((stat, idx) => (
-              <div key={idx} className="bg-[var(--color-bg)] p-6 flex flex-col justify-between hover:bg-[var(--color-surface-alt)] transition-colors group cursor-default">
+              <div
+                key={idx}
+                className="bg-[var(--color-bg)] p-6 flex flex-col justify-between hover:bg-[var(--color-surface-alt)] transition-colors group cursor-default"
+              >
                 <div className="text-[var(--color-ink-soft)] group-hover:text-[var(--color-accent)] transition-colors mb-4 flex justify-between items-start">
                   {stat.icon}
                   <div className="w-1 h-1 bg-[var(--color-border)] group-hover:bg-[var(--color-accent)] transition-colors"></div>
                 </div>
                 <div>
-                  <div className="text-3xl font-mono font-bold tracking-tighter">{stat.value}</div>
+                  {loading ? (
+                    <Skeleton className="h-7 w-20" />
+                  ) : (
+                    <div className="text-3xl font-mono font-bold tracking-tighter">
+                      {stat.value}
+                    </div>
+                  )}
                   <div className="text-[10px] font-mono uppercase tracking-widest text-[var(--color-ink-soft)] mt-1 group-hover:text-[var(--color-ink)] transition-colors">
                     {stat.label}
                   </div>
@@ -357,30 +526,50 @@ export default  function DashboardPage() {
           <div className="lg:col-span-3 bg-[var(--color-surface-alt)] p-6 border-r border-[var(--color-border)]">
             <div className="flex items-center gap-2 mb-6 text-[var(--color-ink)]">
               <Trophy className="w-4 h-4 text-[var(--color-gold)]" />
-              <h3 className="text-xs font-mono font-bold uppercase tracking-widest">Daily Protocols</h3>
+              <h3 className="text-xs font-mono font-bold uppercase tracking-widest">
+                Daily Protocols
+              </h3>
             </div>
             <div className="space-y-3">
               {dailyQuests.map((quest) => (
-                <div 
-                  key={quest.id} 
+                <div
+                  key={quest.id}
                   onClick={() => toggleQuest(quest.id)}
                   className={`p-3 border cursor-pointer transition-all relative group ${
-                    quest.completed 
-                      ? 'bg-[var(--color-success)]/10 border-[var(--color-success)]' 
-                      : 'bg-[var(--color-bg)] border-[var(--color-border)] hover:border-[var(--color-accent)]'
+                    quest.completed
+                      ? "bg-[var(--color-success)]/10 border-[var(--color-success)]"
+                      : "bg-[var(--color-bg)] border-[var(--color-border)] hover:border-[var(--color-accent)]"
                   }`}
                 >
                   <div className="flex justify-between items-start">
-                    <span className={`text-xs font-mono ${quest.completed ? 'text-[var(--color-success)] line-through' : 'text-[var(--color-ink)]'}`}>
+                    <span
+                      className={`text-xs font-mono ${
+                        quest.completed
+                          ? "text-[var(--color-success)] line-through"
+                          : "text-[var(--color-ink)]"
+                      }`}
+                    >
                       {quest.title}
                     </span>
-                    {quest.completed && <div className="w-2 h-2 bg-[var(--color-success)] rounded-full" />}
+                    {quest.completed && (
+                      <div className="w-2 h-2 bg-[var(--color-success)] rounded-full" />
+                    )}
                   </div>
                   <div className="mt-2 flex items-center justify-between">
-                    <span className={`text-[10px] font-mono ${quest.completed ? 'text-[var(--color-success)]' : 'text-[var(--color-gold)]'}`}>
+                    <span
+                      className={`text-[10px] font-mono ${
+                        quest.completed
+                          ? "text-[var(--color-success)]"
+                          : "text-[var(--color-gold)]"
+                      }`}
+                    >
                       +{quest.reward} XP
                     </span>
-                    {!quest.completed && <div className="text-[9px] text-[var(--color-ink-soft)] opacity-0 group-hover:opacity-100">CLICK TO COMPLETE</div>}
+                    {!quest.completed && (
+                      <div className="text-[9px] text-[var(--color-ink-soft)] opacity-0 group-hover:opacity-100">
+                        CLICK TO COMPLETE
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
@@ -391,18 +580,55 @@ export default  function DashboardPage() {
         {/* Achievements / Badges Strip */}
         <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
-            { name: "Bug Hunter", desc: "Fixed 50 bugs", active: true, icon: <Trash2 className="w-4 h-4" /> },
-            { name: "Night Owl", desc: "Committed after 2 AM", active: true, icon: <Sparkles className="w-4 h-4" /> },
-            { name: "Architect", desc: "Created 10 Projects", active: false, icon: <LayoutGrid className="w-4 h-4" /> },
-            { name: "Defender", desc: "No critical errors", active: false, icon: <Shield className="w-4 h-4" /> },
+            {
+              name: "Bug Hunter",
+              desc: "Fixed 50 bugs",
+              active: true,
+              icon: <Trash2 className="w-4 h-4" />,
+            },
+            {
+              name: "Night Owl",
+              desc: "Committed after 2 AM",
+              active: true,
+              icon: <Sparkles className="w-4 h-4" />,
+            },
+            {
+              name: "Architect",
+              desc: "Created 10 Projects",
+              active: false,
+              icon: <LayoutGrid className="w-4 h-4" />,
+            },
+            {
+              name: "Defender",
+              desc: "No critical errors",
+              active: false,
+              icon: <Shield className="w-4 h-4" />,
+            },
           ].map((badge, idx) => (
-            <div key={idx} className={`flex items-center gap-4 p-4 border ${badge.active ? 'border-[var(--color-accent)] bg-[var(--color-accent)]/5' : 'border-[var(--color-border)] bg-[var(--color-bg)] opacity-50'}`}>
-              <div className={`p-2 ${badge.active ? 'text-[var(--color-accent)]' : 'text-[var(--color-ink-soft)]'}`}>
+            <div
+              key={idx}
+              className={`flex items-center gap-4 p-4 border ${
+                badge.active
+                  ? "border-[var(--color-accent)] bg-[var(--color-accent)]/5"
+                  : "border-[var(--color-border)] bg-[var(--color-bg)] opacity-50"
+              }`}
+            >
+              <div
+                className={`p-2 ${
+                  badge.active
+                    ? "text-[var(--color-accent)]"
+                    : "text-[var(--color-ink-soft)]"
+                }`}
+              >
                 {badge.icon}
               </div>
               <div>
-                <div className="text-xs font-bold font-mono uppercase">{badge.name}</div>
-                <div className="text-[10px] text-[var(--color-ink-soft)] font-mono">{badge.desc}</div>
+                <div className="text-xs font-bold font-mono uppercase">
+                  {badge.name}
+                </div>
+                <div className="text-[10px] text-[var(--color-ink-soft)] font-mono">
+                  {badge.desc}
+                </div>
               </div>
             </div>
           ))}
@@ -413,12 +639,14 @@ export default  function DashboardPage() {
           <div className="flex items-center justify-between border-b border-[var(--color-border)] pb-4">
             <div className="flex items-center gap-3">
               <div className="w-1 h-6 bg-[var(--color-accent)]"></div>
-              <h2 className="text-lg font-bold font-mono tracking-tight">ACTIVE MISSIONS</h2>
+              <h2 className="text-lg font-bold font-mono tracking-tight">
+                ACTIVE MISSIONS
+              </h2>
               <span className="text-xs text-[var(--color-ink-soft)] font-mono bg-[var(--color-surface-alt)] px-2 py-0.5 rounded-none">
                 COUNT: {projects.length}
               </span>
             </div>
-            
+
             <button
               onClick={() => setFormOpen(true)}
               className="group flex items-center gap-2 px-5 py-2 bg-[var(--color-ink)] text-[var(--color-bg)] hover:bg-[var(--color-accent)] hover:text-white transition-all font-mono text-xs font-bold uppercase tracking-widest rounded-none"
@@ -430,16 +658,17 @@ export default  function DashboardPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {projects.map((proj) => (
-              <div
-                key={proj.id}
-                className="group relative bg-[var(--color-bg)] border border-[var(--color-border)] hover:border-[var(--color-accent)] transition-all p-6 flex flex-col justify-between min-h-[240px]"
-              >
+              <Link href={`dashboard/${proj.id}`} key={proj.id}>
                 {/* Hover Corner Effect */}
                 <div className="absolute top-0 right-0 w-0 h-0 border-t-[20px] border-r-[20px] border-t-transparent border-r-[var(--color-accent)] opacity-0 group-hover:opacity-100 transition-opacity"></div>
 
                 {/* Top Bar */}
                 <div className="flex justify-between items-start mb-6">
-                  <div className={`px-2 py-1 text-[10px] font-mono uppercase tracking-widest border ${statusColor[proj.status]}`}>
+                  <div
+                    className={`px-2 py-1 text-[10px] font-mono uppercase tracking-widest border ${
+                      statusColor[proj.status]
+                    }`}
+                  >
                     {proj.status}
                   </div>
                   <div className="font-mono text-xs text-[var(--color-ink-soft)] group-hover:text-[var(--color-ink)] transition-colors">
@@ -458,17 +687,35 @@ export default  function DashboardPage() {
                         autoFocus
                       />
                       <div className="flex gap-2 mt-2">
-                        <button onClick={() => handleSaveName(proj.id)} className="text-xs bg-[var(--color-accent)] text-white px-3 py-1 font-bold hover:bg-[var(--color-accent-strong)]">SAVE</button>
-                        <button onClick={() => setEditingId(null)} className="text-xs border border-[var(--color-border)] px-3 py-1 hover:bg-[var(--color-surface-alt)]">CANCEL</button>
+                        <button
+                          onClick={() => handleSaveName(proj.id)}
+                          className="text-xs bg-[var(--color-accent)] text-white px-3 py-1 font-bold hover:bg-[var(--color-accent-strong)]"
+                        >
+                          SAVE
+                        </button>
+                        <button
+                          onClick={() => setEditingId(null)}
+                          className="text-xs border border-[var(--color-border)] px-3 py-1 hover:bg-[var(--color-surface-alt)]"
+                        >
+                          CANCEL
+                        </button>
                       </div>
                     </div>
                   ) : (
-                    <h3 className="text-xl font-bold mb-2 group-hover:text-[var(--color-accent)] transition-colors cursor-pointer" onClick={() => { setEditingId(proj.id); setEditingName(proj.name); }}>
+                    <h3
+                      className="text-xl font-bold mb-2 group-hover:text-[var(--color-accent)] transition-colors cursor-pointer"
+                      onClick={() => {
+                        setEditingId(proj.id);
+                        setEditingName(proj.name);
+                      }}
+                    >
                       {proj.name}
                     </h3>
                   )}
                   <div className="text-xs text-[var(--color-ink-soft)] font-mono mt-4 flex gap-4 border-t border-[var(--color-border)] pt-4 border-dashed">
-                    <span className="flex items-center gap-1"><Activity className="w-3 h-3" /> {proj.tasks} TASKS</span>
+                    <span className="flex items-center gap-1">
+                      <Activity className="w-3 h-3" /> {proj.tasks} TASKS
+                    </span>
                     <span>ETA: {proj.eta}</span>
                   </div>
                 </div>
@@ -482,6 +729,16 @@ export default  function DashboardPage() {
                     </span>
                   </div>
 
+                  <div className="mb-3">
+                    <Link
+                      href={`/dashboard/${proj.id}`}
+                      className="inline-flex items-center gap-2 px-3 py-1 bg-[var(--color-ink)] text-[var(--color-bg)] text-[11px] font-mono font-bold uppercase tracking-widest border border-[var(--color-ink)] hover:bg-[var(--color-accent)] hover:border-[var(--color-accent)] hover:text-white transition-colors"
+                    >
+                      <ArrowLeft className="w-3 h-3 rotate-180" />
+                      Open Project
+                    </Link>
+                  </div>
+
                   <div className="flex justify-between text-[10px] font-mono mb-2 uppercase tracking-widest text-[var(--color-ink-soft)]">
                     <span>Completion</span>
                     <span>{proj.progress}%</span>
@@ -492,18 +749,26 @@ export default  function DashboardPage() {
                       style={{ width: `${proj.progress}%` }}
                     />
                   </div>
-                  
+
                   {/* Action Overlay */}
                   <div className="absolute bottom-4 left-4 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-                    <button 
-                      onClick={() => { setEditingId(proj.id); setEditingName(proj.name); }}
+                    <button
+                      onClick={() => {
+                        setEditingId(proj.id);
+                        setEditingName(proj.name);
+                      }}
                       className="p-1.5 hover:bg-[var(--color-surface-alt)] text-[var(--color-ink-soft)] hover:text-[var(--color-accent)] transition-colors"
                       title="Edit Name"
                     >
                       <Edit2 className="w-3 h-3" />
                     </button>
-                    <button 
-                      onClick={() => confirm('Delete?') && setProjects(prev => prev.filter(p => p.id !== proj.id))}
+                    <button
+                      onClick={() =>
+                        confirm("Delete?") &&
+                        setProjects((prev) =>
+                          prev.filter((p) => p.id !== proj.id)
+                        )
+                      }
                       className="p-1.5 hover:bg-[var(--color-surface-alt)] text-[var(--color-ink-soft)] hover:text-red-500 transition-colors"
                       title="Delete Project"
                     >
@@ -511,7 +776,7 @@ export default  function DashboardPage() {
                     </button>
                   </div>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </section>
@@ -519,16 +784,21 @@ export default  function DashboardPage() {
 
       {/* New Project Modal (Terminal Style) */}
       {formOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[var(--color-bg)]/90 backdrop-blur-sm" dir="rtl">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[var(--color-bg)]/90 backdrop-blur-sm"
+          dir="rtl"
+        >
           <div className="w-full max-w-2xl bg-[var(--color-bg)] border border-[var(--color-accent)] shadow-[0_0_50px_-10px_rgba(0,68,255,0.2)] animate-in fade-in zoom-in-95 duration-200">
-            
             {/* Modal Header */}
             <div className="flex items-center justify-between p-4 border-b border-[var(--color-border)] bg-[var(--color-surface-alt)]">
               <div className="flex items-center gap-2 font-mono text-sm font-bold text-[var(--color-accent)]">
                 <AlertCircle className="w-4 h-4" />
                 <span>PROJECT_INITIALIZER.EXE</span>
               </div>
-              <button onClick={() => setFormOpen(false)} className="hover:text-[var(--color-accent)] font-mono">
+              <button
+                onClick={() => setFormOpen(false)}
+                className="hover:text-[var(--color-accent)] font-mono"
+              >
                 [ESC]
               </button>
             </div>
@@ -536,8 +806,9 @@ export default  function DashboardPage() {
             {/* Modal Body */}
             <form action={formAction} className="p-8 space-y-6">
               <div className="space-y-2">
-                <label className="block text-xs font-mono uppercase tracking-widest text-[var(--color-ink-soft)] flex items-center gap-2">
-                  <span className="w-1 h-1 bg-[var(--color-accent)]"></span> Project Designation (Name)
+                <label className=" text-xs font-mono uppercase tracking-widest text-[var(--color-ink-soft)] flex items-center gap-2">
+                  <span className="w-1 h-1 bg-[var(--color-accent)]"></span>{" "}
+                  Project Designation (Name)
                 </label>
                 <input
                   name="name"

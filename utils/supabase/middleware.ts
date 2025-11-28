@@ -43,7 +43,8 @@ export async function updateSession(request: NextRequest) {
   const isAuthPage =
     path.startsWith("/sign-in") ||
     path.startsWith("/sign-up") ||
-    path.startsWith("/auth");
+    path.startsWith("/auth") ||
+    path.startsWith("/api/auth/");
 
   if (!user && !isAuthPage && !isPublicLanding) {
     // no user, redirect to sign-in page

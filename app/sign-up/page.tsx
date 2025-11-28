@@ -11,6 +11,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { signUp } from "../actions/auth";
+import { SupabaseClient } from "@supabase/supabase-js";
+import { createClient } from "@/utils/supabase/client";
 
 const buttonBase =
   "w-full inline-flex items-center justify-center gap-2 px-4 py-3 border text-sm font-mono uppercase tracking-wider transition-colors rounded-none";
@@ -18,8 +20,25 @@ const buttonBase =
 const inputBase =
   "w-full bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-ink)] px-4 py-3 focus:outline-none focus:border-[var(--color-ink)] font-mono text-sm placeholder-[var(--color-ink-soft)]";
 
-type Theme = "dark" | "light" | "neon" | "sunset" | "sand" | "sky" | "pink" | "coffee";
-const themeOptions: Theme[] = ["dark", "light", "neon", "sunset", "sand", "sky", "pink", "coffee"];
+type Theme =
+  | "dark"
+  | "light"
+  | "neon"
+  | "sunset"
+  | "sand"
+  | "sky"
+  | "pink"
+  | "coffee";
+const themeOptions: Theme[] = [
+  "dark",
+  "light",
+  "neon",
+  "sunset",
+  "sand",
+  "sky",
+  "pink",
+  "coffee",
+];
 
 export default function SignUpPage() {
   const [theme, setTheme] = useState<Theme>("dark");
@@ -47,7 +66,22 @@ export default function SignUpPage() {
   }, [theme]);
 
   const toggleTheme = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
+  const supabaseRedirect = "http://localhost:3000/api/auth/callback?next=/dashboard";
 
+  const handleSignupWithGithub = async () => {
+    const supabase = createClient();
+    await supabase.auth.signInWithOAuth({
+      provider: "github",
+      options: { redirectTo: supabaseRedirect },
+    });
+  };
+  const handelSignupWithGoogle = async () => {
+    const supabase = createClient();
+    await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: supabaseRedirect },
+    });
+  };
   return (
     <div
       className="min-h-screen bg-[var(--color-bg)] text-[var(--color-ink)] selection:bg-[var(--color-ink)] selection:text-[var(--color-bg)]"
@@ -128,6 +162,7 @@ export default function SignUpPage() {
               <div className="grid grid-cols-2 gap-3">
                 <button
                   type="button"
+                  onClick={handleSignupWithGithub}
                   className={`${buttonBase} bg-[var(--color-surface-alt)] border-[var(--color-border-strong)] text-[var(--color-ink)] hover:border-[var(--color-ink)]`}
                 >
                   <Github className="w-4 h-4" />
@@ -135,6 +170,7 @@ export default function SignUpPage() {
                 </button>
                 <button
                   type="button"
+                  onClick={handelSignupWithGoogle}
                   className={`${buttonBase} bg-[var(--color-ink)] text-[var(--color-bg)] border-[var(--color-ink)] hover:bg-[var(--color-ink-soft-contrast)] hover:border-[var(--color-ink-soft-contrast)]`}
                 >
                   <Mail className="w-4 h-4" />
