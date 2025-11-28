@@ -3,6 +3,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Terminal, LayoutGrid, Zap, ChevronLeft, Shield, Code2, Play, Server, Database, Activity, ArrowLeft } from 'lucide-react';
+import { Logo } from '@/components/Logo';
 
 /* --- UI SYSTEM: BRUTALIST / TECHNICAL --- 
    Design Philosophy:
@@ -112,14 +113,7 @@ export default function AlMurshedLanding() {
         <div className="container mx-auto px-6 h-16 flex items-center justify-between">
           
           {/* Brand */}
-          <div className="flex items-center gap-3">
-            <div className="w-6 h-6 bg-[var(--color-ink)] flex items-center justify-center rounded-none">
-              <div className="w-2 h-2 bg-[var(--color-surface-contrast)]"></div>
-            </div>
-            <span className="text-lg font-bold tracking-tight text-[var(--color-ink)] font-mono">
-              ALMurshed<span className="text-[var(--color-accent)]">_</span>
-            </span>
-          </div>
+          <Logo size="sm" compact />
 
           {/* Nav Links */}
           <div className="hidden md:flex items-center gap-8 text-xs font-medium text-[var(--color-ink-soft)] font-mono uppercase tracking-wider">
@@ -382,10 +376,9 @@ export default function AlMurshedLanding() {
         <div className="container mx-auto px-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-20 text-sm">
             <div className="col-span-1 md:col-span-1">
-              <div className="flex items-center gap-2 mb-6">
-                <div className="w-4 h-4 bg-[var(--color-ink)]"></div>
-                <span className="text-lg font-bold text-[var(--color-ink)] font-mono">ALMurshed</span>
-              </div>
+            <div className="flex items-center gap-2 mb-6">
+              <Logo size="sm" compact />
+            </div>
               <p className="text-[var(--color-ink-muted)]">
                 The intelligent operating system for modern software engineering teams.
               </p>

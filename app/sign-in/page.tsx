@@ -11,9 +11,9 @@ import {
   User,
 } from "lucide-react";
 import Link from "next/link";
-import { stat } from "fs";
 import { signIn } from "../actions/auth";
 import { createClient } from "@/utils/supabase/client";
+import { Logo } from "@/components/Logo";
 
 const buttonBase =
   "w-full inline-flex items-center justify-center gap-2 px-4 py-3 border text-sm font-mono uppercase tracking-wider transition-colors rounded-none";
@@ -83,17 +83,7 @@ export default function SignInPage() {
     >
       <div className="max-w-6xl mx-auto px-6 py-16">
         <div className="flex items-center justify-between mb-12">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-[var(--color-ink)] flex items-center justify-center">
-              <div className="w-3 h-3 bg-[var(--color-surface-contrast)]" />
-            </div>
-            <div>
-              <div className="text-lg font-bold font-mono">ALMurshed</div>
-              <div className="text-[10px] text-[var(--color-ink-soft)] font-mono uppercase tracking-widest">
-                secure access
-              </div>
-            </div>
-          </div>
+          <Logo subtitle="secure access" size="sm" />
           <div className="flex items-center gap-3">
             <button
               type="button"

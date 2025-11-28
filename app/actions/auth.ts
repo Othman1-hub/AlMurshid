@@ -87,6 +87,23 @@ export async function getUserDashboardData() {
     .eq("id", user.id)
     .single();
 
+  // Fetch achievements via user_achievements join
+  const { data: userAchievements } = await supabase
+    .from("user_achievements")
+    .select("achievement_id, earned_at, achievement:achievements(*)")
+    .eq("user_id", user.id);
+
+  const achievements =
+    userAchievements?.map((ua) => ({
+      id: ua.achievement?.id ?? ua.achievement_id,
+      name: ua.achievement?.name ?? "Achievement",
+      description: ua.achievement?.description ?? "",
+      icon_slug: ua.achievement?.icon_slug ?? null,
+      xp_reward: ua.achievement?.xp_reward ?? null,
+      active: true,
+      earned_at: ua.earned_at,
+    })) ?? [];
+
   // Fetch user projects
   const { data: projects } = await supabase
     .from("projects")
@@ -134,8 +151,9 @@ export async function getUserDashboardData() {
       totalXp: profile?.total_xp || 0,
       level: profile?.level || 1,
       username: profile?.username || "User",
-      streak: (profile as any)?.streak ?? 0,
+      streak: (profile as any)?.current_streak ?? 0,
       userProfilePicture: profile?.avatar_url || null,
     },
+    achievements: achievements || [],
   };
 }

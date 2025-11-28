@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { MessageSquare, ListChecks, Layers, Settings, Database, Menu, ArrowLeft } from 'lucide-react';
+import { Logo } from '@/components/Logo';
 
 type Theme = 'dark' | 'light' | 'neon' | 'sunset' | 'sand' | 'sky' | 'pink' | 'coffee';
 const themeOptions: Theme[] = ['dark', 'light', 'neon', 'sunset', 'sand', 'sky', 'pink', 'coffee'];
@@ -69,17 +70,7 @@ export default function ProjectLayout({ children }: { children: React.ReactNode 
             Dashboard
           </Link>
 
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-[var(--color-ink)] flex items-center justify-center">
-              <div className="w-3 h-3 bg-[var(--color-surface-contrast)]" />
-            </div>
-            <div>
-              <div className="text-lg font-bold font-mono">ALMurshed</div>
-              <div className="text-[10px] text-[var(--color-ink-soft)] font-mono uppercase tracking-widest">
-                Project Workspace
-              </div>
-            </div>
-          </div>
+          <Logo subtitle="Project Workspace" size="sm" />
 
           <button
             type="button"
