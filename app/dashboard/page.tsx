@@ -78,9 +78,14 @@ function SubmitButton() {
   );
 }
 
-export default function DashboardPage() {
-  const [theme, setTheme] = useState<Theme>("dark");
-  const [streak, setStreak] = useState<number | null>(null);
+export default  function DashboardPage() {
+  
+  const [theme, setTheme] = useState<Theme>(() => {
+    if (typeof window === 'undefined') return 'dark';
+    const stored = window.localStorage.getItem('almurshed-theme');
+    return stored && themeOptions.includes(stored as Theme) ? (stored as Theme) : 'dark';
+  });
+  const [streak, setStreak] = useState(14);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -220,52 +225,6 @@ export default function DashboardPage() {
       {/* INJECTED CSS VARIABLES */}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;700&family=JetBrains+Mono:wght@400;700&display=swap');
-        
-        :root, :root.dark {
-          --color-bg: #050505;
-          --color-surface: #0A0A0A;
-          --color-surface-alt: #111111;
-          --color-surface-contrast: #ffffff;
-          --color-border: #222222;
-          --color-border-strong: #444444;
-          --color-ink: #ffffff;
-          --color-ink-soft: #888888;
-          --color-accent: #0044FF;
-          --color-accent-strong: #0033CC;
-          --color-success: #00FF9D; /* New: Success Color for gamification */
-          --color-gold: #FFD700;    /* New: Gold for rewards */
-        }
-
-        :root.light {
-          --color-bg: #ffffff;
-          --color-surface: #f8f9fa;
-          --color-surface-alt: #f1f3f5;
-          --color-surface-contrast: #000000;
-          --color-border: #e9ecef;
-          --color-border-strong: #dee2e6;
-          --color-ink: #212529;
-          --color-ink-soft: #868e96;
-          --color-accent: #0044FF;
-          --color-accent-strong: #0033CC;
-          --color-success: #00aa63;
-          --color-gold: #d4af37;
-        }
-
-        :root.neon {
-          --color-bg: #0a0a12;
-          --color-surface: #13131f;
-          --color-surface-alt: #1c1c2e;
-          --color-surface-contrast: #00F3FF;
-          --color-border: #2d2d45;
-          --color-border-strong: #00F3FF;
-          --color-ink: #e0e6ed;
-          --color-ink-soft: #6b7280;
-          --color-accent: #00F3FF;
-          --color-accent-strong: #00c4cc;
-          --color-success: #39ff14;
-          --color-gold: #ff00ff;
-        }
-
         body { font-family: 'IBM Plex Sans Arabic', sans-serif; }
         .font-mono { font-family: 'JetBrains Mono', monospace; }
         
@@ -727,42 +686,43 @@ export default function DashboardPage() {
                       </span>
                     </div>
 
-                    <div className="flex justify-between text-[10px] font-mono mb-2 uppercase tracking-widest text-[var(--color-ink-soft)]">
-                      <span>Completion</span>
-                      <span>{proj.progress}%</span>
-                    </div>
-                    <div className="h-1 w-full bg-[var(--color-surface-alt)] overflow-hidden">
-                      <div
-                        className="h-full bg-[var(--color-ink)] group-hover:bg-[var(--color-accent)] transition-colors"
-                        style={{ width: `${proj.progress}%` }}
-                      />
-                    </div>
+                  <div className="mb-3">
+                    <Link
+                      href={`/dashboard/${proj.id}`}
+                      className="inline-flex items-center gap-2 px-3 py-1 bg-[var(--color-ink)] text-[var(--color-bg)] text-[11px] font-mono font-bold uppercase tracking-widest border border-[var(--color-ink)] hover:bg-[var(--color-accent)] hover:border-[var(--color-accent)] hover:text-white transition-colors"
+                    >
+                      <ArrowLeft className="w-3 h-3 rotate-180" />
+                      Open Project
+                    </Link>
+                  </div>
 
-                    {/* Action Overlay */}
-                    <div className="absolute bottom-4 left-4 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-                      <button
-                        onClick={() => {
-                          setEditingId(proj.id);
-                          setEditingName(proj.name);
-                        }}
-                        className="p-1.5 hover:bg-[var(--color-surface-alt)] text-[var(--color-ink-soft)] hover:text-[var(--color-accent)] transition-colors"
-                        title="Edit Name"
-                      >
-                        <Edit2 className="w-3 h-3" />
-                      </button>
-                      <button
-                        onClick={() =>
-                          confirm("Delete?") &&
-                          setProjects((prev) =>
-                            prev.filter((p) => p.id !== proj.id)
-                          )
-                        }
-                        className="p-1.5 hover:bg-[var(--color-surface-alt)] text-[var(--color-ink-soft)] hover:text-red-500 transition-colors"
-                        title="Delete Project"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </button>
-                    </div>
+                  <div className="flex justify-between text-[10px] font-mono mb-2 uppercase tracking-widest text-[var(--color-ink-soft)]">
+                    <span>Completion</span>
+                    <span>{proj.progress}%</span>
+                  </div>
+                  <div className="h-1 w-full bg-[var(--color-surface-alt)] overflow-hidden">
+                    <div
+                      className="h-full bg-[var(--color-ink)] group-hover:bg-[var(--color-accent)] transition-colors"
+                      style={{ width: `${proj.progress}%` }}
+                    />
+                  </div>
+                  
+                  {/* Action Overlay */}
+                  <div className="absolute bottom-4 left-4 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                    <button 
+                      onClick={() => { setEditingId(proj.id); setEditingName(proj.name); }}
+                      className="p-1.5 hover:bg-[var(--color-surface-alt)] text-[var(--color-ink-soft)] hover:text-[var(--color-accent)] transition-colors"
+                      title="Edit Name"
+                    >
+                      <Edit2 className="w-3 h-3" />
+                    </button>
+                    <button 
+                      onClick={() => confirm('Delete?') && setProjects(prev => prev.filter(p => p.id !== proj.id))}
+                      className="p-1.5 hover:bg-[var(--color-surface-alt)] text-[var(--color-ink-soft)] hover:text-red-500 transition-colors"
+                      title="Delete Project"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
                   </div>
                 </div>
               </Link>

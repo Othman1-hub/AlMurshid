@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { MessageSquare, ListChecks, Layers, Settings, Database, Menu } from 'lucide-react';
+import { MessageSquare, ListChecks, Layers, Settings, Database, Menu, ArrowLeft } from 'lucide-react';
 
 type Theme = 'dark' | 'light' | 'neon' | 'sunset' | 'sand' | 'sky' | 'pink' | 'coffee';
 const themeOptions: Theme[] = ['dark', 'light', 'neon', 'sunset', 'sand', 'sky', 'pink', 'coffee'];
@@ -19,7 +19,11 @@ const tabConfig: Tab[] = [
 ];
 
 export default function ProjectLayout({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>('dark');
+  const [theme, setTheme] = useState<Theme>(() => {
+    if (typeof window === 'undefined') return 'dark';
+    const stored = window.localStorage.getItem('almurshed-theme');
+    return stored && themeOptions.includes(stored as Theme) ? (stored as Theme) : 'dark';
+  });
   const [isNavCollapsed, setIsNavCollapsed] = useState(false);
   const pathname = usePathname();
   const segments = pathname.split('/').filter(Boolean);
@@ -56,7 +60,15 @@ export default function ProjectLayout({ children }: { children: React.ReactNode 
   return (
     <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-ink)] selection:bg-[var(--color-ink)] selection:text-[var(--color-bg)]" dir="rtl">
       <div className="border-b border-[var(--color-border)] bg-[var(--color-bg)] sticky top-0 z-40">
-        <div className="w-full px-4 sm:px-6 h-16 flex items-center justify-between">
+        <div className="w-full px-4 sm:px-6 h-16 flex items-center justify-between" dir="ltr">
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center gap-2 text-sm font-mono uppercase tracking-widest text-[var(--color-ink)] hover:text-[var(--color-accent)] border border-[var(--color-border)] px-3 py-2 bg-[var(--color-surface-alt)]"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Dashboard
+          </Link>
+
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-[var(--color-ink)] flex items-center justify-center">
               <div className="w-3 h-3 bg-[var(--color-surface-contrast)]" />
@@ -68,6 +80,7 @@ export default function ProjectLayout({ children }: { children: React.ReactNode 
               </div>
             </div>
           </div>
+
           <button
             type="button"
             aria-label="Toggle menu"
