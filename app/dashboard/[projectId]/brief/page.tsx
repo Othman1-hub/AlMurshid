@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { FileText, Lock, Unlock, Copy, AlertTriangle, Terminal, CheckCircle } from 'lucide-react';
+import { FileText, Lock, Unlock, Copy, AlertTriangle, Terminal, CheckCircle, RefreshCw } from 'lucide-react';
 import { getProjectBrief, updateProjectBrief, updateProjectPrompt } from '@/app/actions/brief';
 
 export default function ProjectBriefPage({ params }: any) {
@@ -16,6 +16,7 @@ export default function ProjectBriefPage({ params }: any) {
   const [loading, setLoading] = useState(true);
   const [savingBrief, setSavingBrief] = useState(false);
   const [savingPrompt, setSavingPrompt] = useState(false);
+  const [regeneratingPrompt, setRegeneratingPrompt] = useState(false);
   const [briefSaved, setBriefSaved] = useState(false);
   const [promptSaved, setPromptSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -76,6 +77,35 @@ export default function ProjectBriefPage({ params }: any) {
       setError('Failed to save prompt');
     } finally {
       setSavingPrompt(false);
+    }
+  };
+
+  const handleRegeneratePrompt = async () => {
+    setRegeneratingPrompt(true);
+    setError(null);
+    try {
+      const response = await fetch('/api/regenerate-prompt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectId }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to regenerate prompt');
+      }
+
+      if (result.success && result.prompt) {
+        setPromptText(result.prompt);
+        setPromptSaved(true);
+        setTimeout(() => setPromptSaved(false), 3000);
+      }
+    } catch (err) {
+      console.error('Error regenerating prompt:', err);
+      setError(err instanceof Error ? err.message : 'Failed to regenerate prompt');
+    } finally {
+      setRegeneratingPrompt(false);
     }
   };
 
@@ -194,6 +224,15 @@ export default function ProjectBriefPage({ params }: any) {
                   </div>
                 )}
                 <button
+                  onClick={handleRegeneratePrompt}
+                  disabled={regeneratingPrompt}
+                  className="text-[10px] font-mono font-bold uppercase text-[var(--color-accent)] hover:text-[var(--color-ink)] flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Regenerate prompt based on current project state"
+                >
+                  <RefreshCw className={`w-3 h-3 ${regeneratingPrompt ? 'animate-spin' : ''}`} />
+                  {regeneratingPrompt ? 'Regenerating...' : 'Refresh'}
+                </button>
+                <button
                   onClick={copyPrompt}
                   className="text-[10px] font-mono font-bold uppercase text-[var(--color-accent)] hover:text-[var(--color-ink)] flex items-center gap-1"
                 >
@@ -229,7 +268,7 @@ export default function ProjectBriefPage({ params }: any) {
               value={promptText}
               onChange={(e) => setPromptText(e.target.value)}
               disabled={isPromptLocked}
-              className={`w-full min-h-[180px] bg-[var(--color-surface)] border-0 p-4 font-mono text-xs leading-relaxed resize-none focus:outline-none transition-all ${
+              className={`flex-1 w-full bg-[var(--color-surface)] border-0 p-4 font-mono text-xs leading-relaxed resize-none focus:outline-none transition-all ${
                 isPromptLocked ? 'opacity-60 cursor-not-allowed text-[var(--color-ink-soft)]' : 'text-[var(--color-ink)] focus:bg-[var(--color-surface-alt)]/40'
               }`}
             />

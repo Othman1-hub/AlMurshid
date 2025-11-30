@@ -388,6 +388,57 @@ The more detailed the information, the better and more accurate the plan will be
             </button>
           </div>
         )}
+
+        {/* Loading Overlay - Full Screen Modal */}
+        {isGenerating && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+            <div className="relative max-w-md w-full mx-4">
+              <div className="bg-gradient-to-br from-[var(--color-surface)] to-[var(--color-surface-alt)] border-2 border-[var(--color-accent)] shadow-2xl p-8 relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[var(--color-accent)] to-transparent animate-shimmer"></div>
+                
+                <div className="text-center space-y-6">
+                  <div className="flex justify-center">
+                    <div className="relative">
+                      <div className="w-20 h-20 border-4 border-[var(--color-accent)]/20 rounded-full"></div>
+                      <div className="absolute inset-0 w-20 h-20 border-4 border-transparent border-t-[var(--color-accent)] rounded-full animate-spin"></div>
+                      <Sparkles className="absolute inset-0 m-auto w-8 h-8 text-[var(--color-accent)] animate-pulse" />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <div className="text-xl font-bold text-[var(--color-accent)] font-mono">
+                      🎯 GENERATING YOUR PLAN
+                    </div>
+                    <div className="text-sm text-[var(--color-ink-soft)] space-y-1">
+                      <div className="flex items-center justify-center gap-2">
+                        <div className="w-2 h-2 bg-[var(--color-accent)] rounded-full animate-pulse"></div>
+                        <span>Analyzing conversation...</span>
+                      </div>
+                      <div className="flex items-center justify-center gap-2">
+                        <div className="w-2 h-2 bg-[var(--color-accent)] rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+                        <span>Creating tasks & phases...</span>
+                      </div>
+                      <div className="flex items-center justify-center gap-2">
+                        <div className="w-2 h-2 bg-[var(--color-accent)] rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+                        <span>Setting up dependencies...</span>
+                      </div>
+                      <div className="flex items-center justify-center gap-2">
+                        <div className="w-2 h-2 bg-[var(--color-accent)] rounded-full animate-pulse" style={{ animationDelay: '0.6s' }}></div>
+                        <span>Saving to database...</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="pt-4 border-t border-[var(--color-border)]">
+                    <div className="text-xs text-[var(--color-ink-soft)] font-mono">
+                      ⏱️ This may take 30-60 seconds
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         
         {/* Success Message - Gamified */}
         {generationComplete && (

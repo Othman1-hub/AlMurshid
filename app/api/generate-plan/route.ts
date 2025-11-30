@@ -199,11 +199,47 @@ export async function POST(req: NextRequest) {
     try {
       // Extract JSON from response (handle markdown code blocks if present)
       const jsonMatch = result.text.match(/```json\n([\s\S]*?)\n```/) || result.text.match(/```\n([\s\S]*?)\n```/);
-      const jsonText = jsonMatch ? jsonMatch[1] : result.text;
+      let jsonText = jsonMatch ? jsonMatch[1] : result.text;
+      
+      // Fix common JSON formatting issues from AI
+      // Fix duplicate/malformed keys in tasks (e.g., "id": "name": "task-10")
+      jsonText = jsonText.replace(/"id":\s*"name":\s*"(task-\d+)"/g, '"id": "$1", "name"');
+      // Fix "name": "task-X" appearing before "id": "task-X"
+      jsonText = jsonText.replace(/"name":\s*"(task-\d+)",?\s*"id":\s*"(task-\d+)"/g, '"id": "$2", "name"');
+      // Remove any "name": "task-X" without proper value after it
+      jsonText = jsonText.replace(/,?\s*"name":\s*"(task-\d+)",?\s*"id":/g, '"id":');
       
       planData = JSON.parse(jsonText);
+      
+      // Validate and fix task IDs if needed
+      if (planData.tasks && Array.isArray(planData.tasks)) {
+        planData.tasks = planData.tasks.map((task, index) => {
+          // Fix malformed task IDs (e.g., "name": "task-10" should be "id": "task-10")
+          if (!task.id || typeof task.id !== 'string') {
+            task.id = `task-${index + 1}`;
+          }
+          // Ensure task has a proper name
+          if (!task.name || task.name.startsWith('task-')) {
+            task.name = `Task ${index + 1}`;
+          }
+          return task;
+        });
+      }
+      
+      // Fix phase references in tasks if needed
+      if (planData.phases && planData.tasks) {
+        const validPhaseIds = new Set(planData.phases.map(p => p.id));
+        planData.tasks = planData.tasks.map(task => {
+          if (task.phaseId && !validPhaseIds.has(task.phaseId)) {
+            // Try to find matching phase or assign to first phase
+            task.phaseId = planData.phases[0]?.id;
+          }
+          return task;
+        });
+      }
     } catch (parseError) {
       console.error('Failed to parse AI response:', result.text);
+      console.error('Parse error details:', parseError);
       throw new Error('AI generated invalid JSON format');
     }
 
