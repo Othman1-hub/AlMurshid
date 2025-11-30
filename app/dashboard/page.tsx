@@ -71,6 +71,11 @@ type Achievement = {
   earned_at?: string;
 };
 
+type TaskSummary = {
+  total: number;
+  completed: number;
+};
+
 function SubmitButton() {
   const { pending } = useFormStatus();
 
@@ -94,7 +99,7 @@ export default function DashboardPage() {
       ? (stored as Theme)
       : "dark";
   });
-  const [streak, setStreak] = useState(14);
+  const [streak, setStreak] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -109,6 +114,11 @@ export default function DashboardPage() {
 
   // New: Daily Quests Data
   const [dailyQuests, setDailyQuests] = useState<Quest[]>([]);
+
+  const [tasksSummary, setTasksSummary] = useState<TaskSummary>({
+    total: 0,
+    completed: 0,
+  });
 
   const [projects, setProjects] = useState<Project[]>([]);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
@@ -129,16 +139,28 @@ export default function DashboardPage() {
         const data = await getUserDashboardData();
 
         if (data) {
+          const totalXpValue = Number(data.stats.totalXp ?? 0);
+          const levelValue =
+            typeof data.stats.level === "number"
+              ? data.stats.level
+              : Math.floor(totalXpValue / 1000) + 1;
+
           setUsername(data.stats.username);
-          setUserLevel(data.stats.level);
-          setTotalXp(data.stats.totalXp);
-          setProjects(data.projects as Project[]);
-          setCurrentXp(Math.min(data.stats.totalXp % 5000, 5000)); // XP towards next level
+          setUserLevel(levelValue);
+          setTotalXp(totalXpValue);
+          setProjects((data.projects as Project[]) || []);
+          setCurrentXp(totalXpValue % 1000); // XP towards next level
           setUserProfilePicture(data.stats.userProfilePicture || null);
           setStreak(data.stats.streak ?? 0);
           setAchievements(
             (data.achievements as Achievement[] | undefined) || []
           );
+          setTasksSummary({
+            total: data.taskSummary?.total ?? 0,
+            completed: data.taskSummary?.completed ?? 0,
+          });
+        } else {
+          setTasksSummary({ total: 0, completed: 0 });
         }
       } catch (err) {
         console.error("Failed to fetch dashboard data:", err);
@@ -170,11 +192,10 @@ export default function DashboardPage() {
     }
   }, [theme]);
 
-  const xp = currentXp;
-  const nextLevel = 5000;
+  const nextLevel = 1000;
   const xpProgress = loading
     ? 0
-    : Math.min(100, Math.round((xp / nextLevel) * 100));
+    : Math.min(100, (currentXp / nextLevel) * 100);
   const title = (totalXp ?? 0) > 4000 ? "Chief Architect" : "Systems Lead";
   const initials = useMemo(() => {
     const parts = username.trim().split(/\s+/).filter(Boolean);
@@ -223,6 +244,16 @@ export default function DashboardPage() {
       prev.map((q) => (q.id === id ? { ...q, completed: !q.completed } : q))
     );
   };
+
+  const questCompletion =
+    tasksSummary.total > 0
+      ? `${Math.round(
+          (tasksSummary.completed / tasksSummary.total) * 100
+        )}%`
+      : "0%";
+  const activeBadgeCount = achievements.filter((a) => a.active ?? true).length;
+  const activeBadgesDisplay =
+    activeBadgeCount > 0 ? activeBadgeCount.toString().padStart(2, "0") : "0";
 
   return (
     <div
@@ -468,7 +499,7 @@ export default function DashboardPage() {
               },
               {
                 label: "Quest Completion",
-                value: "94%",
+                value: questCompletion,
                 icon: <Target className="w-4 h-4" />,
               },
               {
@@ -478,7 +509,7 @@ export default function DashboardPage() {
               },
               {
                 label: "Active Badges",
-                value: "05",
+                value: activeBadgesDisplay,
                 icon: <Award className="w-4 h-4" />,
               },
             ].map((stat, idx) => (
