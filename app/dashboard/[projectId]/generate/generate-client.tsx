@@ -297,9 +297,9 @@ The more detailed the information, the better and more accurate the plan will be
                           h3: ({node, ...props}) => <h3 className="text-sm font-bold mb-1 mt-2" {...props} />,
                           code: ({node, inline, ...props}: any) => 
                             inline ? 
-                              <code className="bg-black/20 px-1 py-0.5 rounded text-xs font-mono" {...props} /> : 
-                              <code className="block bg-black/30 p-2 rounded my-2 text-xs font-mono overflow-x-auto" {...props} />,
-                          strong: ({node, ...props}) => <strong className="font-bold text-white" {...props} />,
+                              <code className="bg-[var(--color-surface-alt)] text-[var(--color-ink)] px-1 py-0.5 rounded text-xs font-mono" {...props} /> : 
+                              <code className="block bg-[var(--color-surface)] text-[var(--color-ink)] p-2 rounded my-2 text-xs font-mono overflow-x-auto border border-[var(--color-border)]" {...props} />,
+                          strong: ({node, ...props}) => <strong className="font-bold text-[var(--color-ink)]" {...props} />,
                           em: ({node, ...props}) => <em className="italic" {...props} />,
                           a: ({node, ...props}) => <a className="underline hover:text-white" {...props} />,
                         }}

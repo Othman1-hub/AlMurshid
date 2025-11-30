@@ -28,10 +28,19 @@ export default async function ProjectFirstGeneratePage({ params }: { params: { p
     redirect('/dashboard');
   }
 
+  // Fetch user level for display; default to 1 if missing
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('level')
+    .eq('id', user.id)
+    .single();
+
+  const userLevel = profile?.level ?? 1;
+
   // If project has already been generated, redirect to main project page
   if (project.generate === true) {
     redirect(`/dashboard/${projectId}`);
   }
 
-  return <GeneratePageClient projectId={projectId} projectName={project.name || ''} />;
+  return <GeneratePageClient projectId={projectId} projectName={project.name || ''} userLevel={userLevel} />;
 }
