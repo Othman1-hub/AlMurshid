@@ -15,12 +15,14 @@ export default function EditTaskForm({
   task, 
   projectId, 
   onCancel,
-  onSuccess
+  onSuccess,
+  dependencies // Add this parameter
 }: { 
   task: any, 
   projectId: number, 
   onCancel?: () => void,
-  onSuccess?: (updatedTask: any) => void
+  onSuccess?: (updatedTask: any) => void,
+  dependencies?: Array<{ task_id: number; predecessor_task_id: number }> // Add type
 }) {
   const supabase = useMemo(() => createSupabaseClient(), []);
   
@@ -38,11 +40,28 @@ export default function EditTaskForm({
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Check if task has incomplete predecessors
+  const hasIncompletePrecessors = useMemo(() => {
+    if (!dependencies) return false;
+    const predecessorIds = dependencies
+      .filter(dep => dep.task_id === task.id)
+      .map(dep => dep.predecessor_task_id);
+    
+    return predecessorIds.length > 0;
+  }, [dependencies, task.id]);
+
+  const canChangeStatus = !hasIncompletePrecessors || formData.status === mapDbStatusToUi(task.status);
+
   const handleUpdate = async () => {
     setIsSaving(true);
     setError(null);
 
     try {
+      // Validate status change
+      if (formData.status !== mapDbStatusToUi(task.status) && !canChangeStatus) {
+        throw new Error('Cannot change status while dependencies are incomplete');
+      }
+
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('You must be signed in');
 
@@ -133,6 +152,13 @@ export default function EditTaskForm({
         </div>
       )}
 
+      {hasIncompletePrecessors && (
+        <div className="flex items-center gap-2 p-3 bg-[var(--color-gold)]/10 border border-[var(--color-gold)] text-[var(--color-gold)] text-sm rounded">
+          <AlertCircle className="w-4 h-4" />
+          <span>⚠️ This task has dependencies. Complete prerequisites before changing status.</span>
+        </div>
+      )}
+
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="text-[10px] font-mono text-[var(--color-ink-soft)] uppercase tracking-widest block mb-2">Task Name</label>
@@ -189,8 +215,9 @@ export default function EditTaskForm({
           <label className="text-[10px] font-mono text-[var(--color-ink-soft)] uppercase tracking-widest block mb-2">Status</label>
           <select
             value={formData.status}
-            onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-            className="w-full bg-[var(--color-bg)] border border-[var(--color-border)] p-2 text-sm text-[var(--color-ink)] focus:border-[var(--color-accent)] outline-none"
+            onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
+            disabled={!canChangeStatus}
+            className={`w-full bg-[var(--color-bg)] border border-[var(--color-border)] p-2 text-sm text-[var(--color-ink)] focus:border-[var(--color-accent)] outline-none ${!canChangeStatus ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             <option>WAITING</option>
             <option>RUNNING</option>
