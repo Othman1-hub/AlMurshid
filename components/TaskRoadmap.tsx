@@ -531,10 +531,12 @@ export default function TaskRoadmap({ projectId, tasks, phases, dependencies }: 
   };
 
   return (
-    <div className="w-full bg-[var(--color-bg)] text-[var(--color-ink)] p-8 flex flex-col gap-8" dir="ltr">
+    <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-ink)] transition-colors duration-300">
+      {/* INJECTED CSS VARIABLES - Same as Dashboard */}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;700&family=JetBrains+Mono:wght@400;700&display=swap');
-        :root {
+        
+        :root, :root.dark {
           --color-bg: #050505;
           --color-surface: #0A0A0A;
           --color-surface-alt: #111111;
@@ -543,20 +545,156 @@ export default function TaskRoadmap({ projectId, tasks, phases, dependencies }: 
           --color-border-strong: #444444;
           --color-ink: #ffffff;
           --color-ink-soft: #888888;
-          --color-accent: #0044FF;
-          --color-accent-strong: #0033CC;
+          --color-accent: #ff0000;
+          --color-accent-strong: #cc0000;
           --color-success: #00FF9D;
           --color-gold: #FFD700;
-          --color-danger: #FF0033;
+          --color-danger: #ff4444;
         }
+
+        :root.light {
+          --color-bg: #ffffff;
+          --color-surface: #f8f9fa;
+          --color-surface-alt: #f1f3f5;
+          --color-surface-contrast: #000000;
+          --color-border: #e9ecef;
+          --color-border-strong: #dee2e6;
+          --color-ink: #212529;
+          --color-ink-soft: #868e96;
+          --color-accent: #0044FF;
+          --color-accent-strong: #0033CC;
+          --color-success: #00aa63;
+          --color-gold: #d4af37;
+          --color-danger: #ff4444;
+        }
+
+        :root.neon {
+          --color-bg: #0a0a12;
+          --color-surface: #13131f;
+          --color-surface-alt: #1c1c2e;
+          --color-surface-contrast: #00F3FF;
+          --color-border: #2d2d45;
+          --color-border-strong: #00F3FF;
+          --color-ink: #e0e6ed;
+          --color-ink-soft: #6b7280;
+          --color-accent: #00F3FF;
+          --color-accent-strong: #00c4cc;
+          --color-success: #39ff14;
+          --color-gold: #ff00ff;
+          --color-danger: #ff0066;
+        }
+
+        :root.sunset {
+          --color-bg: #0c1b12;
+          --color-surface: #10251a;
+          --color-surface-alt: #163221;
+          --color-surface-contrast: #39b36b;
+          --color-border: #1e3a2a;
+          --color-border-strong: #39b36b;
+          --color-ink: #e6f3e9;
+          --color-ink-soft: #9cb8a4;
+          --color-accent: #39b36b;
+          --color-accent-strong: #2a8a51;
+          --color-success: #52d18a;
+          --color-gold: #d3a446;
+          --color-danger: #ff6b6b;
+        }
+
+        :root.sand {
+          --color-bg: #fdf6e3;
+          --color-surface: #f5eacc;
+          --color-surface-alt: #ebe1c5;
+          --color-surface-contrast: #586e75;
+          --color-border: #d6cebf;
+          --color-border-strong: #b58900;
+          --color-ink: #43302b;
+          --color-ink-soft: #8d735a;
+          --color-accent: #d94e1f;
+          --color-accent-strong: #a0320d;
+          --color-success: #2aa198;
+          --color-gold: #b58900;
+          --color-danger: #d94e1f;
+        }
+
+        :root.sky {
+          --color-bg: #f0f9ff;
+          --color-surface: #ffffff;
+          --color-surface-alt: #e0f2fe;
+          --color-surface-contrast: #0284c7;
+          --color-border: #bae6fd;
+          --color-border-strong: #38bdf8;
+          --color-ink: #0c4a6e;
+          --color-ink-soft: #475569;
+          --color-accent: #0ea5e9;
+          --color-accent-strong: #0284c7;
+          --color-success: #10b981;
+          --color-gold: #fbbf24;
+          --color-danger: #ef4444;
+        }
+
+        :root.pink {
+          --color-bg: #fff5f8;
+          --color-surface: #ffffff;
+          --color-surface-alt: #ffe3ec;
+          --color-surface-contrast: #ff6fa5;
+          --color-border: #ffc2d9;
+          --color-border-strong: #ff6fa5;
+          --color-ink: #36121b;
+          --color-ink-soft: #8a4d68;
+          --color-accent: #ff6fa5;
+          --color-accent-strong: #e75480;
+          --color-success: #34d399;
+          --color-gold: #f4b400;
+          --color-danger: #ff6b9d;
+        }
+
+        :root.coffee {
+          --color-bg: #ffe6d1;
+          --color-surface: #f7d7b5;
+          --color-surface-alt: #e8c196;
+          --color-surface-contrast: #5b1f2a;
+          --color-border: #d9b089;
+          --color-border-strong: #8a3a2f;
+          --color-ink: #2b1a14;
+          --color-ink-soft: #5b3c2d;
+          --color-accent: #8a3a2f;
+          --color-accent-strong: #5b1f2a;
+          --color-success: #3f8f62;
+          --color-gold: #c58a3a;
+          --color-danger: #a0320d;
+        }
+
         body { font-family: 'IBM Plex Sans Arabic', sans-serif; }
         .font-mono { font-family: 'JetBrains Mono', monospace; }
-        .roadmap-spine { position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; background: linear-gradient(to bottom, var(--color-success), var(--color-accent), var(--color-border)); transform: translateX(-50%); z-index: 0; }
-        input.edit-input, textarea.edit-input { background: transparent; border: none; color: inherit; width: 100%; outline: none; }
-        input.edit-input:focus, textarea.edit-input:focus { background: var(--color-surface-alt); }
-        .modal-scroll::-webkit-scrollbar { width: 4px; }
-        .modal-scroll::-webkit-scrollbar-track { background: var(--color-surface); }
-        .modal-scroll::-webkit-scrollbar-thumb { background: var(--color-border-strong); }
+
+        /* ROADMAP SPINE LINE */
+        .roadmap-spine {
+          position: absolute;
+          left: 50%;
+          top: 0;
+          bottom: 0;
+          width: 2px;
+          background: linear-gradient(to bottom, var(--color-accent), transparent);
+          transform: translateX(-50%);
+          z-index: 1;
+        }
+
+        .roadmap-spine::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 100%;
+          background: var(--color-accent);
+          opacity: 0.3;
+          animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+          0%, 100% { opacity: 0.3; }
+          50% { opacity: 0.6; }
+        }
       `}</style>
 
       {toast && (
@@ -601,15 +739,10 @@ export default function TaskRoadmap({ projectId, tasks, phases, dependencies }: 
               <div className="absolute left-1/2 top-0 transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center z-20 group/node">
                 <button
                   onClick={() => openAddTaskModal(phase.id)}
-                  className={`w-14 h-14 rounded-full flex items-center justify-center transition-all shadow-[0_0_20px_-5px_rgba(0,0,0,0.5)] cursor-pointer relative border-2 ${
-                    isPhaseLocked
-                      ? 'bg-[var(--color-surface)] border-[var(--color-border)] cursor-not-allowed opacity-50'
-                      : 'bg-[var(--color-bg)] border-[var(--color-accent)] hover:bg-[var(--color-accent)] hover:text-white'
-                  }`}
+                  className={`w-14 h-14 rounded-full flex items-center justify-center transition-all shadow-[0_0_20px_-5px_rgba(0,0,0,0.5)] cursor-pointer relative border-2 bg-[var(--color-bg)] border-[var(--color-accent)] hover:bg-[var(--color-accent)] hover:text-white`}
                   title="Add Task to Phase"
-                  disabled={isPhaseLocked}
                 >
-                  <Layers className={`w-6 h-6 ${isPhaseLocked ? 'text-[var(--color-ink-soft)]' : 'text-[var(--color-accent)] group-hover/node:text-white'}`} />
+                  <Layers className={`w-6 h-6 text-[var(--color-accent)] group-hover/node:text-white`} />
                   <div className="absolute -bottom-1 -right-1 bg-[var(--color-bg)] rounded-full border border-[var(--color-border)]">
                     <PlusCircle className="w-5 h-5 text-[var(--color-success)] fill-[var(--color-bg)]" />
                   </div>
@@ -617,11 +750,7 @@ export default function TaskRoadmap({ projectId, tasks, phases, dependencies }: 
 
                 <button
                   onClick={() => openPhaseModal(phase)}
-                  className={`mt-3 px-4 py-1.5 text-[10px] font-mono font-bold uppercase tracking-widest border min-w-[150px] text-center transition-colors hover:bg-[var(--color-surface-alt)] ${
-                    isPhaseLocked
-                      ? 'bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-ink-soft)]'
-                      : 'bg-[var(--color-bg)] border-[var(--color-accent)] text-[var(--color-accent)]'
-                  }`}
+                  className={`mt-3 px-4 py-1.5 text-[10px] font-mono font-bold uppercase tracking-widest border min-w-[150px] text-center transition-colors bg-[var(--color-bg)] border-[var(--color-accent)] text-[var(--color-accent)] hover:bg-[var(--color-surface-alt)]`}
                 >
                   <div className="text-[8px] text-[var(--color-ink-soft)] mb-0.5 pointer-events-none">PHASE-{String(phase.pr_id).padStart(2, '0')}</div>
                   <div className="truncate max-w-[200px]">{phase.name}</div>
