@@ -79,13 +79,25 @@ export async function getUserDashboardData() {
   if (!user) {
     return null;
   }
-
+  //update the last_active_at field
+  await supabase
+    .from("profiles")
+    .update({ last_active_at: new Date().toISOString() })
+    .eq("id", user.id);
   // Fetch user profile
   const { data: profile } = await supabase
     .from("profiles")
     .select("*")
     .eq("id", user.id)
     .single();
+
+  const totalXp = Number(profile?.total_xp ?? 0);
+  const level = profile?.level ?? Math.floor(totalXp / 1000) + 1;
+  const username =
+    profile?.username ||
+    (user.user_metadata as any)?.display_name ||
+    user.email?.split("@")?.[0] ||
+    "User";
 
   // Fetch achievements via user_achievements join
   const { data: userAchievements } = await supabase
@@ -95,7 +107,9 @@ export async function getUserDashboardData() {
 
   const achievements =
     userAchievements?.map((ua) => {
-      const achievement = Array.isArray(ua.achievement) ? ua.achievement[0] : ua.achievement;
+      const achievement = Array.isArray(ua.achievement)
+        ? ua.achievement[0]
+        : ua.achievement;
       return {
         id: achievement?.id ?? ua.achievement_id,
         name: achievement?.name ?? "Achievement",
@@ -151,11 +165,15 @@ export async function getUserDashboardData() {
       };
     }),
     stats: {
-      totalXp: profile?.total_xp || 0,
-      level: profile?.level || 1,
-      username: profile?.username || "User",
+      totalXp,
+      level,
+      username,
       streak: (profile as any)?.current_streak ?? 0,
       userProfilePicture: profile?.avatar_url || null,
+    },
+    taskSummary: {
+      total: tasksData.length,
+      completed: tasksData.filter((t) => t.status === "completed").length,
     },
     achievements: achievements || [],
   };
