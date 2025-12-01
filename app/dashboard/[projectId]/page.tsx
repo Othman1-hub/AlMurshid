@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/utils/supabase/server';
+import { fetchProjectForUser } from '@/lib/projectAccess';
 
 export default async function ProjectDefault({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
@@ -16,15 +17,14 @@ export default async function ProjectDefault({ params }: { params: Promise<{ pro
     redirect('/sign-in');
   }
 
-  // Check if project has been generated
-  const { data: project } = await supabase
-    .from('projects')
-    .select('generate')
-    .eq('id', projectIdNum)
-    .eq('user_id', user.id)
-    .single();
+  const { project, error } = await fetchProjectForUser(
+    supabase,
+    user.id,
+    projectIdNum,
+    'generate, user_id'
+  );
 
-  if (!project) {
+  if (!project || error) {
     redirect('/dashboard');
   }
 

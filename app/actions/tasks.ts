@@ -3,6 +3,25 @@
 import { createClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
 import type { TaskDifficulty, TaskStatus } from "@/lib/types/task";
+import { fetchProjectForUser } from "@/lib/projectAccess";
+
+async function ensureProjectAccess(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  projectId: number
+) {
+  const { project, error } = await fetchProjectForUser(
+    supabase,
+    userId,
+    projectId,
+    "id"
+  );
+
+  if (!project || error) {
+    return { error: "Project not found or unauthorized" };
+  }
+  return { ok: true as const };
+}
 
 /**
  * Get all tasks for a project
@@ -16,16 +35,9 @@ export async function getProjectTasks(projectId: number) {
   }
 
   try {
-    // Verify user owns the project
-    const { data: project } = await supabase
-      .from("projects")
-      .select("id")
-      .eq("id", projectId)
-      .eq("user_id", user.id)
-      .single();
-
-    if (!project) {
-      return { error: "Project not found or unauthorized" };
+    const access = await ensureProjectAccess(supabase, user.id, projectId);
+    if ("error" in access) {
+      return access;
     }
 
     const { data, error } = await supabase
@@ -70,16 +82,9 @@ export async function createTask(
   }
 
   try {
-    // Verify user owns the project
-    const { data: project } = await supabase
-      .from("projects")
-      .select("id")
-      .eq("id", projectId)
-      .eq("user_id", user.id)
-      .single();
-
-    if (!project) {
-      return { error: "Project not found or unauthorized" };
+    const access = await ensureProjectAccess(supabase, user.id, projectId);
+    if ("error" in access) {
+      return access;
     }
 
     // Prepare the data for insertion
@@ -143,16 +148,9 @@ export async function updateTask(
   }
 
   try {
-    // Verify user owns the project
-    const { data: project } = await supabase
-      .from("projects")
-      .select("id")
-      .eq("id", projectId)
-      .eq("user_id", user.id)
-      .single();
-
-    if (!project) {
-      return { error: "Project not found or unauthorized" };
+    const access = await ensureProjectAccess(supabase, user.id, projectId);
+    if ("error" in access) {
+      return access;
     }
 
     const { data, error } = await supabase
@@ -187,16 +185,9 @@ export async function deleteTask(taskId: number, projectId: number) {
   }
 
   try {
-    // Verify user owns the project
-    const { data: project } = await supabase
-      .from("projects")
-      .select("id")
-      .eq("id", projectId)
-      .eq("user_id", user.id)
-      .single();
-
-    if (!project) {
-      return { error: "Project not found or unauthorized" };
+    const access = await ensureProjectAccess(supabase, user.id, projectId);
+    if ("error" in access) {
+      return access;
     }
 
     const { error } = await supabase
@@ -242,16 +233,9 @@ export async function bulkCreateTasks(
   }
 
   try {
-    // Verify user owns the project
-    const { data: project } = await supabase
-      .from("projects")
-      .select("id")
-      .eq("id", projectId)
-      .eq("user_id", user.id)
-      .single();
-
-    if (!project) {
-      return { error: "Project not found or unauthorized" };
+    const access = await ensureProjectAccess(supabase, user.id, projectId);
+    if ("error" in access) {
+      return access;
     }
 
     const tasksToInsert = tasks.map(task => ({

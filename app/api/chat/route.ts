@@ -4,6 +4,7 @@ import { alMurshidTools } from '@/lib/ai/tools';
 import { getAIModel } from '@/lib/ai/config';
 import { NextRequest } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
+import { fetchProjectForUser } from '@/lib/projectAccess';
 
 // Use Node.js runtime to support Server Actions with proper authentication
 // Edge runtime has limited cookie/session access which breaks Server Actions
@@ -64,14 +65,14 @@ export async function POST(req: NextRequest) {
       }
 
       // Fetch fresh project data directly from database
-      const { data: project } = await supabase
-        .from('projects')
-        .select('*')
-        .eq('id', projectId)
-        .eq('user_id', user.id)
-        .single();
+      const { project, error } = await fetchProjectForUser(
+        supabase,
+        user.id,
+        Number(projectId),
+        '*'
+      );
 
-      if (!project) {
+      if (!project || error) {
         return new Response('Project not found', { status: 404 });
       }
 

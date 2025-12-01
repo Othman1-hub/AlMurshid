@@ -1,6 +1,7 @@
 import { createClient } from '@/utils/supabase/server';
 import { redirect } from 'next/navigation';
 import GeneratePageClient from './generate-client';
+import { fetchProjectForUser } from '@/lib/projectAccess';
 
 export default async function ProjectFirstGeneratePage({ params }: { params: { projectId: string } }) {
   const projectId = parseInt(params.projectId);
@@ -16,13 +17,13 @@ export default async function ProjectFirstGeneratePage({ params }: { params: { p
     redirect('/sign-in');
   }
 
-  // Check if user owns the project and if it's already been generated
-  const { data: project, error } = await supabase
-    .from('projects')
-    .select('id, name, generate')
-    .eq('id', projectId)
-    .eq('user_id', user.id)
-    .single();
+  // Check if user owns or is a teammate, and if it's already been generated
+  const { project, error } = await fetchProjectForUser(
+    supabase,
+    user.id,
+    projectId,
+    'id, name, generate'
+  );
 
   if (error || !project) {
     redirect('/dashboard');

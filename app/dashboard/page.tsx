@@ -22,6 +22,7 @@ import { useFormState, useFormStatus } from "react-dom";
 import { useRouter } from "next/navigation";
 import { getUserDashboardData, signOut } from "../actions/auth";
 import { addProject } from "../actions/projects";
+import { createClient as createBrowserSupabaseClient } from "@/utils/supabase/client";
 import Image from "next/image";
 import { Logo } from "@/components/Logo";
 import { ThemeSelector } from "@/components/ThemeSelector";
@@ -50,6 +51,7 @@ type Project = {
   id: string;
   name: string;
   status: "Active" | "Planning" | "Paused" | "Review";
+  password?: string | null;
   eta: string;
   tasks: number;
   progress: number;
@@ -117,6 +119,18 @@ export default function DashboardPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
 
+  const [joinModalOpen, setJoinModalOpen] = useState(false);
+  const [joinProjectId, setJoinProjectId] = useState("");
+  const [joinPassword, setJoinPassword] = useState("");
+  const [joinError, setJoinError] = useState<string | null>(null);
+  const [joinLoading, setJoinLoading] = useState(false);
+  const [joinSuccess, setJoinSuccess] = useState(false);
+
+  const [collaborationModalOpen, setCollaborationModalOpen] = useState(false);
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [projectPassword, setProjectPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+
   const Skeleton = ({ className = "" }: { className?: string }) => (
     <div className={`skeleton ${className}`} aria-hidden />
   );
@@ -170,6 +184,13 @@ export default function DashboardPage() {
     }
   }, [theme]);
 
+  useEffect(() => {
+    if (selectedProject) {
+      setProjectPassword(selectedProject.password ?? "");
+      setShowPassword(false);
+    }
+  }, [selectedProject]);
+
   const xp = currentXp;
   const nextLevel = 5000;
   const xpProgress = loading
@@ -181,6 +202,10 @@ export default function DashboardPage() {
     const letters = (parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "");
     return (letters || username.slice(0, 2) || "U").toUpperCase();
   }, [username]);
+  const hasPassword = Boolean(projectPassword);
+  const displayedPassword = hasPassword
+    ? projectPassword
+    : "No pass set for this project";
 
   const statusColor = useMemo(
     () => ({
@@ -221,6 +246,14 @@ export default function DashboardPage() {
   const toggleQuest = (id: number) => {
     setDailyQuests((prev) =>
       prev.map((q) => (q.id === id ? { ...q, completed: !q.completed } : q))
+    );
+  };
+
+  const fetchProjectCollaboration = (projectId: string) => {
+    // TODO: Replace with actual API call
+    // For now, generate a mock password
+    setProjectPassword(
+      Math.random().toString(36).substring(2, 15).toUpperCase()
     );
   };
 
@@ -498,7 +531,7 @@ export default function DashboardPage() {
                       {stat.value}
                     </div>
                   )}
-                  <div className="text-[10px] font-mono uppercase tracking-widest text-[var(--color-ink-soft)] mt-1 group-hover:text-[var(--color-ink)] transition-colors">
+                  <div className="text-[10px] text-[var(--color-ink-soft)] font-mono uppercase tracking-widest mt-1 group-hover:text-[var(--color-ink)] transition-colors">
                     {stat.label}
                   </div>
                 </div>
@@ -507,7 +540,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Daily Protocols (Quests) */}
-          <div className="lg:col-span-3 bg-[var(--color-surface-alt)] p-6 border-r border-[var(--color-border)]">
+          <div className="lg:col-span-3 bg-[var(--color-surface-alt)] p-6 border-r border-[var(--color-border]">
             <div className="flex items-center gap-2 mb-6 text-[var(--color-ink)]">
               <Trophy className="w-4 h-4 text-[var(--color-gold)]" />
               <h3 className="text-xs font-mono font-bold uppercase tracking-widest">
@@ -637,13 +670,27 @@ export default function DashboardPage() {
               </span>
             </div>
 
-            <button
-              onClick={() => setFormOpen(true)}
-              className="group flex items-center gap-2 px-5 py-2 bg-[var(--color-ink)] text-[var(--color-bg)] hover:bg-[var(--color-accent)] hover:text-white transition-all font-mono text-xs font-bold uppercase tracking-widest rounded-none"
-            >
-              <Plus className="w-4 h-4" />
-              INITIALIZE_NEW
-            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setFormOpen(true)}
+                className="group flex items-center gap-2 px-5 py-2 bg-[var(--color-ink)] text-[var(--color-bg)] hover:bg-[var(--color-accent)] hover:text-white transition-all font-mono text-xs font-bold uppercase tracking-widest rounded-none"
+              >
+                <Plus className="w-4 h-4" />
+                INITIALIZE_NEW
+              </button>
+
+              <button
+                onClick={() => {
+                  setJoinModalOpen(true);
+                  setJoinError(null);
+                  setJoinProjectId("");
+                  setJoinPassword("");
+                }}
+                className="group flex items-center gap-2 px-5 py-2 border border-[var(--color-accent)] text-[var(--color-accent)] hover:bg-[var(--color-accent)] hover:text-[var(--color-ink)] transition-all font-mono text-xs font-bold uppercase tracking-widest rounded-none"
+              >
+                🔗 JOIN_PROJECT
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -761,6 +808,19 @@ export default function DashboardPage() {
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
+                        setSelectedProject(proj);
+                        setCollaborationModalOpen(true);
+                        setProjectPassword(proj.password ?? "");
+                        setShowPassword(false);
+                      }}
+                      className="relative p-1.5 hover:bg-[var(--color-surface-alt)] text-[var(--color-ink-soft)] hover:text-[var(--color-accent)] transition-colors"
+                      title="Share Project"
+                    >
+                      🔗
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
                         setEditingId(proj.id);
                         setEditingName(proj.name);
                       }}
@@ -839,6 +899,21 @@ export default function DashboardPage() {
                     rows={3}
                   />
                 </div>
+
+                <div className="space-y-2">
+                  <label className="block text-xs font-mono uppercase tracking-widest text-[var(--color-ink-soft)]">
+                    🔐 Collaboration Password
+                  </label>
+                  <input
+                    name="collaboration_password"
+                    type="password"
+                    className="w-full bg-[var(--color-bg)] border border-[var(--color-border)] p-3 font-mono text-sm focus:outline-none focus:border-[var(--color-accent)] placeholder:text-[var(--color-ink-soft)]/30 transition-colors"
+                    placeholder="Leave blank if not sharing..."
+                  />
+                  <div className="text-[9px] text-[var(--color-ink-soft)] font-mono">
+                    Generate a password to share with teammates
+                  </div>
+                </div>
               </div>
 
               {formState.error && (
@@ -858,6 +933,305 @@ export default function DashboardPage() {
                 <SubmitButton />
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Join Project Modal */}
+      {joinModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[var(--color-bg)]/90 backdrop-blur-sm"
+          dir="rtl"
+        >
+          <div className="w-full max-w-md bg-[var(--color-bg)] border border-[var(--color-accent)] shadow-[0_0_50px_-10px_rgba(0,68,255,0.2)] animate-in fade-in zoom-in-95 duration-200">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-4 border-b border-[var(--color-border)] bg-[var(--color-surface-alt)]">
+              <div className="flex items-center gap-2 font-mono text-sm font-bold text-[var(--color-accent)]">
+                <AlertCircle className="w-4 h-4" />
+                <span>JOIN_PROJECT.EXE</span>
+              </div>
+              <button
+                onClick={() => setJoinModalOpen(false)}
+                className="hover:text-[var(--color-accent)] font-mono"
+              >
+                [ESC]
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                setJoinLoading(true);
+                setJoinError(null);
+                setJoinSuccess(false);
+
+                const formattedId = joinProjectId.trim();
+                const passwordInput = joinPassword.trim();
+                const separatorIndex = formattedId.lastIndexOf("-");
+
+                if (separatorIndex === -1) {
+                  setJoinError("Invalid project ID format (expected NAME-ID)");
+                  setJoinLoading(false);
+                  return;
+                }
+
+                const projectNamePart = formattedId
+                  .slice(0, separatorIndex)
+                  .trim();
+                const projectIdPart = formattedId
+                  .slice(separatorIndex + 1)
+                  .trim();
+                const projectIdNumeric = Number(projectIdPart);
+
+                if (
+                  !projectNamePart ||
+                  !projectIdPart ||
+                  Number.isNaN(projectIdNumeric)
+                ) {
+                  setJoinError("Invalid project ID format (missing name or id)");
+                  setJoinLoading(false);
+                  return;
+                }
+
+                try {
+                  const res = await fetch("/api/join-team", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      projectId: projectIdNumeric,
+                      projectName: projectNamePart,
+                      password: passwordInput,
+                    }),
+                  });
+
+                  const result = await res.json();
+
+                  if (!res.ok) {
+                    setJoinError(result?.message || "Failed to join this project");
+                    setJoinLoading(false);
+                    return;
+                  }
+
+                  setJoinSuccess(true);
+                  setTimeout(() => {
+                    setJoinModalOpen(false);
+                    router.push(`/dashboard/${result.projectId}`);
+                  }, 800);
+                } catch (err) {
+                  console.error("Join project failed", err);
+                  setJoinError("Failed to join this project (unexpected error)");
+                } finally {
+                  setJoinLoading(false);
+                }
+              }}
+              className="p-8 space-y-6"
+            >
+              <div className="space-y-2">
+                <label className="text-xs font-mono uppercase tracking-widest text-[var(--color-ink-soft)] flex items-center gap-2">
+                  <span className="w-1 h-1 bg-[var(--color-accent)]"></span>{" "}
+                  Project ID
+                </label>
+                <input
+                  value={joinProjectId}
+                  onChange={(e) => setJoinProjectId(e.target.value.trimStart())}
+                  className="w-full bg-[var(--color-bg)] border border-[var(--color-border)] p-3 font-mono text-sm focus:outline-none focus:border-[var(--color-accent)] placeholder:text-[var(--color-ink-soft)]/30 transition-colors"
+                  placeholder="ENTER_PROJECT_NAME-ID..."
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-mono uppercase tracking-widest text-[var(--color-ink-soft)] flex items-center gap-2">
+                  <span className="w-1 h-1 bg-[var(--color-accent)]"></span>{" "}
+                  Collaboration Password
+                </label>
+                <input
+                  type="password"
+                  value={joinPassword}
+                  onChange={(e) => setJoinPassword(e.target.value.trimStart())}
+                  className="w-full bg-[var(--color-bg)] border border-[var(--color-border)] p-3 font-mono text-sm focus:outline-none focus:border-[var(--color-accent)] placeholder:text-[var(--color-ink-soft)]/30 transition-colors"
+                  placeholder="ENTER_PASSWORD..."
+                  required
+                />
+              </div>
+
+              {joinError && (
+                <div className="p-3 bg-red-500/10 border border-red-500 text-red-500 text-xs font-mono">
+                  ERROR: {joinError}
+                </div>
+              )}
+
+              <div className="pt-6 flex justify-end gap-4 border-t border-[var(--color-border)] mt-2">
+                <button
+                  type="button"
+                  onClick={() => setJoinModalOpen(false)}
+                  className="px-6 py-3 border border-[var(--color-border)] text-xs font-mono font-bold hover:bg-[var(--color-surface-alt)] text-[var(--color-ink-soft)] hover:text-[var(--color-ink)] transition-colors"
+                >
+                  CANCEL
+                </button>
+                <button
+                  type="submit"
+                  disabled={joinLoading}
+                  className="px-6 py-3 bg-[var(--color-accent)] text-white border border-[var(--color-accent)] text-xs font-mono font-bold hover:bg-[var(--color-accent-strong)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {joinLoading ? "JOINING..." : "JOIN_PROJECT"}
+                </button>
+              </div>
+
+              {joinSuccess && (
+                <div className="mt-4 text-center text-xs font-mono text-[var(--color-success)]">
+                  Project joined successfully! Redirecting...
+                </div>
+              )}
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Collaboration/Share Modal */}
+      {collaborationModalOpen && selectedProject && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[var(--color-bg)]/90 backdrop-blur-sm"
+          dir="rtl"
+        >
+          <div className="w-full max-w-xl max-h-[85vh] bg-[var(--color-bg)] border border-[var(--color-accent)] shadow-[0_0_50px_-10px_rgba(0,68,255,0.2)] animate-in fade-in zoom-in-95 duration-200 flex flex-col">
+            <div className="flex items-center justify-between p-3 border-b border-[var(--color-border)] bg-[var(--color-surface-alt)]">
+              <div className="flex items-center gap-2 font-mono text-sm font-bold text-[var(--color-accent)]">
+                <span>SHARE_PROJECT.EXE</span>
+              </div>
+              <button
+                onClick={() => setCollaborationModalOpen(false)}
+                className="hover:text-[var(--color-accent)] font-mono text-lg"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-5 space-y-5 overflow-y-auto">
+              <div>
+                <h2 className="text-lg font-bold mb-2">
+                  {selectedProject.name}
+                </h2>
+                <p className="text-xs text-[var(--color-ink-soft)] font-mono">
+                  Share these credentials with your teammates to invite them
+                </p>
+              </div>
+
+              {/* Project ID Section */}
+              <div className="space-y-3 p-4 border border-[var(--color-border)] bg-[var(--color-surface-alt)]">
+                <label className="text-xs font-mono uppercase tracking-widest text-[var(--color-ink-soft)]">
+                  PROJECT_ID
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={`${selectedProject.name}-${selectedProject.id}`}
+                    readOnly
+                    className="flex-1 bg-[var(--color-bg)] border border-[var(--color-border)] p-3 font-mono text-sm text-[var(--color-ink)] focus:outline-none"
+                  />
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(
+                        `${selectedProject.name}-${selectedProject.id}`
+                      );
+                      alert("Project ID copied!");
+                    }}
+                    className="px-4 py-3 border border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-accent)] text-[var(--color-accent)] hover:text-[var(--color-ink)] text-xs font-mono font-bold transition-colors flex items-center gap-2"
+                  >
+                    📋 COPY
+                  </button>
+                </div>
+                <div className="text-[9px] text-[var(--color-ink-soft)] font-mono">
+                  Format: ProjectName-ID (e.g., MyApp-42)
+                </div>
+              </div>
+
+              {/* Password Section */}
+              <div className="space-y-3 p-4 border border-[var(--color-border)] bg-[var(--color-surface-alt)]">
+                <label className="text-xs font-mono uppercase tracking-widest text-[var(--color-ink-soft)]">
+                  COLLABORATION_PASSWORD
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type={hasPassword && !showPassword ? "password" : "text"}
+                    value={displayedPassword}
+                    readOnly
+                    className="flex-1 bg-[var(--color-bg)] border border-[var(--color-border)] p-3 font-mono text-sm text-[var(--color-ink)] focus:outline-none"
+                  />
+                  <button
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="px-4 py-3 border border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-surface-alt)] text-[var(--color-accent)] text-xs font-mono font-bold transition-colors"
+                  >
+                    {showPassword ? "HIDE" : "SHOW"}
+                  </button>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(projectPassword);
+                      alert("Password copied!");
+                    }}
+                    disabled={!projectPassword}
+                    className="px-4 py-3 border border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-accent)] text-[var(--color-accent)] hover:text-[var(--color-ink)] text-xs font-mono font-bold transition-colors disabled:opacity-50 flex items-center gap-2"
+                  >
+                    📋 COPY
+                  </button>
+                </div>
+              </div>
+
+              {/* Invite Link Section */}
+              <div className="space-y-3 p-4 border border-[var(--color-accent)] bg-[var(--color-surface-alt)]">
+                <label className="text-xs font-mono uppercase tracking-widest text-[var(--color-accent)] font-bold">
+                  🔗 INVITE_LINK (Share This)
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={
+                      projectPassword
+                        ? `${window.location.origin}/dashboard/join?projectId=${selectedProject.id}&projectName=${selectedProject.name}&password=${projectPassword}`
+                        : "Generate password first"
+                    }
+                    readOnly
+                    className="flex-1 bg-[var(--color-bg)] border border-[var(--color-border)] p-3 font-mono text-[10px] text-[var(--color-ink-soft)] focus:outline-none overflow-x-auto"
+                  />
+                  <button
+                    onClick={() => {
+                      const inviteLink = `${window.location.origin}/dashboard/join?projectId=${selectedProject.id}&projectName=${selectedProject.name}&password=${projectPassword}`;
+                      navigator.clipboard.writeText(inviteLink);
+                      alert("Invite link copied!");
+                    }}
+                    disabled={!projectPassword}
+                    className="px-4 py-3 border border-[var(--color-accent)] bg-[var(--color-accent)]/10 hover:bg-[var(--color-accent)] text-[var(--color-accent)] hover:text-[var(--color-ink)] text-xs font-mono font-bold transition-colors disabled:opacity-50 flex items-center gap-2 whitespace-nowrap"
+                  >
+                    🔗 COPY_LINK
+                  </button>
+                </div>
+              </div>
+
+              {/* Instructions */}
+              <div className="bg-[var(--color-surface-alt)] border border-[var(--color-border)] p-4 space-y-2">
+                <div className="text-xs font-mono font-bold text-[var(--color-accent)]">
+                  📖 HOW_TO_SHARE:
+                </div>
+                <ol className="text-[10px] text-[var(--color-ink-soft)] font-mono space-y-1 list-decimal list-inside">
+                  <li>Copy the INVITE_LINK and send to teammates</li>
+                  <li>
+                    OR send PROJECT_ID and PASSWORD separately for security
+                  </li>
+                  <li>Teammate clicks link or enters ID + password on JOIN_PROJECT</li>
+                  <li>They'll be added as a team member</li>
+                </ol>
+              </div>
+
+              <div className="flex justify-end">
+                <button
+                  onClick={() => setCollaborationModalOpen(false)}
+                  className="px-4 py-3 border border-[var(--color-border)] text-xs font-mono font-bold hover:bg-[var(--color-surface-alt)] transition-colors"
+                >
+                  CLOSE
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

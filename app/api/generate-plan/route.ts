@@ -4,6 +4,7 @@ import { ProjectPlan } from '@/lib/types/task';
 import { getAIModel } from '@/lib/ai/config';
 import { NextRequest } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
+import { fetchProjectForUser } from '@/lib/projectAccess';
 
 /**
  * POST /api/generate-plan
@@ -61,13 +62,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Verify user owns the project and it hasn't been generated yet
-    const { data: project, error: projectError } = await supabase
-      .from('projects')
-      .select('*')
-      .eq('id', projectId)
-      .eq('user_id', user.id)
-      .single();
+    const { project, error: projectError } = await fetchProjectForUser(
+      supabase,
+      user.id,
+      Number(projectId),
+      '*'
+    );
 
     if (projectError || !project) {
       return Response.json(

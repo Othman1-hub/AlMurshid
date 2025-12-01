@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
+import { fetchProjectForUser } from '@/lib/projectAccess';
 
 /**
  * GET /api/projects/[projectId]/dependencies
@@ -25,15 +26,14 @@ export async function GET(
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Verify user owns the project
-    const { data: project } = await supabase
-      .from('projects')
-      .select('id')
-      .eq('id', projectId)
-      .eq('user_id', user.id)
-      .single();
+    const { project, error } = await fetchProjectForUser(
+      supabase,
+      user.id,
+      projectId,
+      'id'
+    );
 
-    if (!project) {
+    if (!project || error) {
       return Response.json({ error: 'Project not found' }, { status: 404 });
     }
 
