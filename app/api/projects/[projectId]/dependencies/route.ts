@@ -26,14 +26,14 @@ export async function GET(
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { project, error } = await fetchProjectForUser(
+    const { project, error: accessError } = await fetchProjectForUser(
       supabase,
       user.id,
       projectId,
       'id'
     );
 
-    if (!project || error) {
+    if (!project || accessError) {
       return Response.json({ error: 'Project not found' }, { status: 404 });
     }
 
@@ -50,13 +50,13 @@ export async function GET(
     const taskIds = tasks.map(t => t.id);
 
     // Fetch dependencies
-    const { data: dependencies, error } = await supabase
+    const { data: dependencies, error: depsError } = await supabase
       .from('task_dependencies')
       .select('*')
       .in('task_id', taskIds);
 
-    if (error) {
-      throw error;
+    if (depsError) {
+      throw depsError;
     }
 
     return Response.json(dependencies || []);

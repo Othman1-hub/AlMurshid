@@ -26,26 +26,26 @@ export async function GET(
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { project, error } = await fetchProjectForUser(
+    const { project, error: accessError } = await fetchProjectForUser(
       supabase,
       user.id,
       projectId,
       'id'
     );
 
-    if (!project || error) {
+    if (!project || accessError) {
       return Response.json({ error: 'Project not found' }, { status: 404 });
     }
 
     // Fetch phases
-    const { data: phases, error } = await supabase
+    const { data: phases, error: phasesError } = await supabase
       .from('phases')
       .select('*')
       .eq('project_id', projectId)
       .order('order_index', { ascending: true });
 
-    if (error) {
-      throw error;
+    if (phasesError) {
+      throw phasesError;
     }
 
     return Response.json(phases || []);
