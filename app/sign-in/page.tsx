@@ -24,13 +24,7 @@ const inputBase =
 
 export default function SignInPage() {
   const router = useRouter();
-  type Theme =
-    | "dark"
-    | "light"
-    | "coffee"
-    | "tvgirl"
-    | "sonic"
-    | "pikachu";
+  type Theme = "dark" | "light" | "coffee" | "tvgirl" | "sonic" | "pikachu";
   const themeOptions: Theme[] = [
     "dark",
     "light",
@@ -40,18 +34,19 @@ export default function SignInPage() {
     "pikachu",
   ];
   const [theme, setTheme] = useState<Theme>(() => {
-    if (typeof window === 'undefined') return 'dark';
-    const stored = window.localStorage.getItem('almurshed-theme');
-    return stored && themeOptions.includes(stored as Theme) ? (stored as Theme) : 'dark';
+    if (typeof window === "undefined") return "dark";
+    const stored = window.localStorage.getItem("almurshed-theme");
+    return stored && themeOptions.includes(stored as Theme)
+      ? (stored as Theme)
+      : "dark";
   });
   const [state, formAction, pending] = useActionState(signIn, {
     error: "",
     values: { email: "" },
   });
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
-  const supabaseRedirect = "http://localhost:3000/api/auth/callback?next=/dashboard";
-
-
+  const supabaseRedirect =
+    "https://al-murshid.vercel.app/api/auth/callback?next=/dashboard";
 
   useEffect(() => {
     if (typeof document !== "undefined") {
@@ -66,14 +61,16 @@ export default function SignInPage() {
     const checkAuth = async () => {
       try {
         const supabase = createClient();
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
         if (user) {
-          router.push('/dashboard');
+          router.push("/dashboard");
         } else {
           setIsCheckingAuth(false);
         }
       } catch (error) {
-        console.error('Auth check error:', error);
+        console.error("Auth check error:", error);
         setIsCheckingAuth(false);
       }
     };
@@ -94,7 +91,9 @@ export default function SignInPage() {
       <div className="min-h-screen bg-[var(--color-bg)] flex items-center justify-center">
         <div className="text-center space-y-4">
           <div className="w-12 h-12 border-4 border-[var(--color-border)] border-t-[var(--color-accent)] rounded-full animate-spin mx-auto"></div>
-          <p className="text-[var(--color-ink-soft)] font-mono text-sm uppercase tracking-widest">Checking authentication...</p>
+          <p className="text-[var(--color-ink-soft)] font-mono text-sm uppercase tracking-widest">
+            Checking authentication...
+          </p>
         </div>
       </div>
     );
