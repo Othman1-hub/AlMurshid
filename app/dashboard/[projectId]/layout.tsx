@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { MessageSquare, ListChecks, Layers, Settings, Database, Menu, ArrowLeft, ChevronDown } from 'lucide-react';
+import { MessageSquare, ListChecks, Layers, Database, Menu, ArrowLeft, ChevronDown } from 'lucide-react';
 import { Logo } from '@/components/Logo';
 
 type Theme = 'dark' | 'light' | 'coffee' | 'tvgirl' | 'sonic' | 'pikachu';
@@ -15,7 +15,6 @@ const tabConfig: Tab[] = [
   { key: 'ai', label: 'AI', icon: MessageSquare },
   { key: 'tasks', label: 'Tasks', icon: ListChecks },
   { key: 'brief', label: 'Brief', icon: Layers },
-  { key: 'settings', label: 'Settings', icon: Settings },
   { key: 'PROJECT_MEMORY', label: 'Project Memory', icon: Database },
 ];
 
