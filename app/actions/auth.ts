@@ -121,11 +121,39 @@ export async function getUserDashboardData() {
       };
     }) ?? [];
 
-  // Fetch user projects
-  const { data: projects } = await supabase
+  // Fetch user-owned projects
+  const { data: ownedProjects } = await supabase
     .from("projects")
     .select("*")
     .eq("user_id", user.id);
+
+  // Fetch projects where user is a teammate
+  const { data: teamMemberships } = await supabase
+    .from("teams")
+    .select(
+      `
+        project:projects (
+          id,
+          name,
+          description,
+          created_at,
+          user_id,
+          password
+        )
+      `
+    )
+    .eq("user_id", user.id);
+
+  const teamProjects =
+    teamMemberships
+      ?.map((m: any) => m.project)
+      ?.filter(Boolean) || [];
+
+  // Merge owned + team projects, unique by id
+  const projectMap = new Map<string, any>();
+  (ownedProjects || []).forEach((p: any) => projectMap.set(String(p.id), p));
+  teamProjects.forEach((p: any) => projectMap.set(String(p.id), p));
+  const projects = Array.from(projectMap.values());
 
   // Fetch tasks for all user projects with counts
   const projectIds = projects?.map((p) => p.id) || [];
@@ -155,6 +183,7 @@ export async function getUserDashboardData() {
       return {
         id: proj.id.toString(),
         name: proj.name,
+        password: proj.password ?? null,
         description: proj.description,
         status: "Active",
         eta: "TBD",

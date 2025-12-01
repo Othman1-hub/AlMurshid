@@ -9,6 +9,7 @@ type FormState = {
   values: {
     name?: string;
     description?: string;
+    collaboration_password?: string;
   };
   project?: any;
 };
@@ -19,6 +20,7 @@ const initialState: FormState = {
   values: {
     name: undefined,
     description: undefined,
+    collaboration_password: undefined,
   },
 };
 
@@ -31,18 +33,20 @@ export async function addProject(prevState: FormState, formData: FormData): Prom
       error: "User not authenticated", 
       values: { 
         name: formData.get("name") as string,
-        description: formData.get("description") as string 
+        description: formData.get("description") as string,
+        collaboration_password: formData.get("collaboration_password") as string,
       } 
     };
   }
 
   const name = formData.get("name") as string;
   const description = formData.get("description") as string;
+  const collaboration_password = formData.get("collaboration_password") as string;
 
   if (!name?.trim()) {
     return { 
       error: "Project name is required", 
-      values: { name, description } 
+      values: { name, description, collaboration_password } 
     };
   }
 
@@ -54,6 +58,7 @@ export async function addProject(prevState: FormState, formData: FormData): Prom
           user_id: user.id,
           name: name.trim(),
           description: description?.trim() || null,
+          password: collaboration_password?.trim() || null,
         },
       ])
       .select();
@@ -61,21 +66,21 @@ export async function addProject(prevState: FormState, formData: FormData): Prom
     if (error) {
       return { 
         error: error.message, 
-        values: { name, description } 
+        values: { name, description, collaboration_password } 
       };
     }
 
     revalidatePath("/dashboard", "layout");
     return { 
       success: true, 
-      values: { name, description },
+      values: { name, description, collaboration_password },
       project: data?.[0] 
     };
   } catch (err) {
     console.error("Error adding project:", err);
     return { 
       error: "Failed to add project", 
-      values: { name, description } 
+      values: { name, description, collaboration_password } 
     };
   }
 }

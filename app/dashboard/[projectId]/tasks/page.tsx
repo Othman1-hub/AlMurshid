@@ -1,6 +1,7 @@
 import { createClient } from '@/utils/supabase/server';
 import { redirect } from 'next/navigation';
 import TaskRoadmap from '@/components/TaskRoadmap';
+import { fetchProjectForUser } from '@/lib/projectAccess';
 
 export default async function ProjectTasksPage({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
@@ -13,15 +14,14 @@ export default async function ProjectTasksPage({ params }: { params: Promise<{ p
     redirect('/sign-in');
   }
 
-  // Fetch project to verify ownership
-  const { data: project } = await supabase
-    .from('projects')
-    .select('id')
-    .eq('id', projectIdNum)
-    .eq('user_id', user.id)
-    .single();
+  const { project, error } = await fetchProjectForUser(
+    supabase,
+    user.id,
+    projectIdNum,
+    'id'
+  );
 
-  if (!project) {
+  if (!project || error) {
     redirect('/dashboard');
   }
 
