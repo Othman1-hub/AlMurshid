@@ -2,6 +2,7 @@
 
 import { createClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
+import { fetchProjectForUser } from "@/lib/projectAccess";
 
 export type MemoryType = "constants" | "fragments" | "external_resources";
 
@@ -49,15 +50,14 @@ export async function addMemory(
     };
   }
 
-  // Verify user owns the project
-  const { data: project } = await supabase
-    .from("projects")
-    .select("id")
-    .eq("id", projectId)
-    .eq("user_id", user.id)
-    .single();
+  const { project, error: accessError } = await fetchProjectForUser(
+    supabase,
+    user.id,
+    projectId,
+    "id"
+  );
 
-  if (!project) {
+  if (!project || accessError) {
     return {
       error: "Project not found or unauthorized",
       values: {
@@ -164,15 +164,14 @@ export async function deleteMemory(memoryId: number, projectId: number) {
     return { error: "User not authenticated" };
   }
 
-  // Verify user owns the project
-  const { data: project } = await supabase
-    .from("projects")
-    .select("id")
-    .eq("id", projectId)
-    .eq("user_id", user.id)
-    .single();
+  const { project, error: accessError } = await fetchProjectForUser(
+    supabase,
+    user.id,
+    projectId,
+    "id"
+  );
 
-  if (!project) {
+  if (!project || accessError) {
     return { error: "Project not found or unauthorized" };
   }
 
@@ -215,15 +214,14 @@ export async function updateMemory(
     };
   }
 
-  // Verify user owns the project
-  const { data: project } = await supabase
-    .from("projects")
-    .select("id")
-    .eq("id", projectId)
-    .eq("user_id", user.id)
-    .single();
+  const { project, error: accessError } = await fetchProjectForUser(
+    supabase,
+    user.id,
+    projectId,
+    "id"
+  );
 
-  if (!project) {
+  if (!project || accessError) {
     return {
       error: "Project not found or unauthorized",
       values: {
