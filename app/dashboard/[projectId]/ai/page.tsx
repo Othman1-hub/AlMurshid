@@ -77,8 +77,13 @@ export default function ProjectAiPage() {
   }, [messages]);
 
   return (
-    <div className="flex-1 flex flex-col gap-4" dir="ltr">
-      <div className="flex items-center justify-between">
+    <div className="flex-1 flex flex-col gap-4 h-full overflow-hidden" dir="ltr">
+      <style jsx global>{`
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+        }
+      `}</style>
+      <div className="flex items-center justify-between flex-shrink-0">
         <div>
           <div className="text-xs font-mono uppercase tracking-widest text-[var(--color-ink-soft)]">Al-Murshid • AI Assistant</div>
           <div className="text-2xl font-semibold">Project Management & Edits</div>
@@ -109,7 +114,7 @@ export default function ProjectAiPage() {
         </div>
       )}
 
-      <div className="flex flex-wrap gap-2 text-xs">
+      <div className="flex flex-wrap gap-2 text-xs flex-shrink-0">
         <button
           onClick={() => handleInputChange({ target: { value: 'Give me a project status summary' } } as any)}
           className="px-3 py-2 bg-[var(--color-surface)] hover:bg-[var(--color-accent)] transition-colors"
@@ -136,8 +141,8 @@ export default function ProjectAiPage() {
         </button>
       </div>
 
-      <div className="flex-1 overflow-hidden">
-        <div className="h-full overflow-y-auto px-2 py-4 space-y-4 bg-[var(--color-bg)]" dir="ltr">
+      <div className="flex-1 overflow-hidden min-h-0">
+        <div className="h-full overflow-y-auto px-2 py-4 space-y-4 bg-[var(--color-bg)] scrollbar-hide" dir="ltr" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
           {loading ? (
             <div className="text-center text-[var(--color-ink-soft)] py-8">
               Loading project data...
@@ -147,14 +152,24 @@ export default function ProjectAiPage() {
               {messages.map((m) => (
                 <div key={m.id} className={`max-w-3xl ${m.role === 'user' ? 'ml-auto text-right' : 'text-left'}`}>
                   <div
-                    className={`inline-block px-4 py-3 ${
+                    className={`inline-block px-4 py-3 border-2 transition-all duration-200 hover:scale-[1.02] ${
                       m.role === 'user'
-                        ? 'bg-[var(--color-accent)] text-[var(--color-ink)]'
-                        : 'bg-[var(--color-surface)] text-[var(--color-ink)]'
+                        ? 'bg-[var(--color-accent)] text-[var(--color-ink)] border-[var(--color-accent)] shadow-[0_0_20px_-5px_var(--color-accent)]'
+                        : 'bg-[var(--color-surface)] text-[var(--color-ink)] border-[var(--color-border)] hover:border-[var(--color-accent)]/50 shadow-md'
                     }`}
                   >
-                    <div className="text-[11px] uppercase font-mono tracking-widest text-[var(--color-ink-soft)] mb-1">
-                      {m.role === 'user' ? 'You' : 'Al-Murshid'}
+                    <div className="text-[11px] uppercase font-mono tracking-widest mb-1 font-bold flex items-center gap-2">
+                      {m.role === 'user' ? (
+                        <>
+                          <div className="w-1.5 h-1.5 bg-[var(--color-ink)] rounded-full animate-pulse"></div>
+                          <span className="text-[var(--color-ink)]/80">YOU</span>
+                        </>
+                      ) : (
+                        <>
+                          <div className="w-1.5 h-1.5 bg-[var(--color-accent)] rounded-full animate-pulse"></div>
+                          <span className="text-[var(--color-accent)]">AL-MURSHID</span>
+                        </>
+                      )}
                     </div>
                     <div className="text-sm leading-relaxed">
                       {m.role === 'assistant' ? (
@@ -205,7 +220,7 @@ export default function ProjectAiPage() {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="flex items-center gap-3 bg-[var(--color-bg)] p-3">
+      <form onSubmit={handleSubmit} className="flex items-center gap-3 bg-[var(--color-bg)] p-3 flex-shrink-0">
         <input
           value={input}
           onChange={handleInputChange}
@@ -223,7 +238,7 @@ export default function ProjectAiPage() {
         </button>
       </form>
 
-      <div className="text-[10px] text-center text-[var(--color-ink-soft)] font-mono space-y-1">
+      <div className="text-[10px] text-center text-[var(--color-ink-soft)] font-mono space-y-1 flex-shrink-0">
         <div>💡 Request: add/edit/delete tasks, create phases, add dependencies, change difficulty, or any edits</div>
         <div>🔧 Al-Murshid can execute operations directly on the database</div>
       </div>

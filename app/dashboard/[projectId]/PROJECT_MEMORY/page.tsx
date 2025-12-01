@@ -351,7 +351,7 @@ export default function ProjectMemory({ params }: any) {
   };
   
   return (
-    <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-ink)] font-sans selection:bg-[var(--color-ink)] selection:text-[var(--color-bg)] relative overflow-x-hidden" dir="rtl">
+    <div className="h-full flex flex-col bg-[var(--color-bg)] text-[var(--color-ink)] font-sans selection:bg-[var(--color-ink)] selection:text-[var(--color-bg)] relative" dir="rtl">
 
       {/* Modals */}
       <MemoryFormModal 
@@ -391,7 +391,7 @@ export default function ProjectMemory({ params }: any) {
       />
 
       {/* Header */}
-      <header className="border-b border-[var(--color-border)] bg-[var(--color-surface)] sticky top-0 z-20">
+      <header className="border-b border-[var(--color-border)] bg-[var(--color-surface)] flex-shrink-0 z-20">
         <div className="container mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-[var(--color-accent)] flex items-center justify-center rounded-none">
@@ -410,13 +410,26 @@ export default function ProjectMemory({ params }: any) {
       </header>
 
       {loading ? (
-        <main className="container mx-auto px-6 py-8">
+        <main className="flex-1 overflow-y-auto container mx-auto px-6 py-8" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+          <style jsx>{`
+            main::-webkit-scrollbar {
+              display: none;
+            }
+          `}</style>
           <div className="text-center text-[var(--color-ink-soft)] font-mono">
             LOADING_MEMORIES...
           </div>
         </main>
       ) : (
-        <main className={`container mx-auto px-6 py-8 transition-all duration-300 ${selectedItem ? 'pl-96' : ''}`}>
+        <main 
+          className={`flex-1 overflow-y-auto container mx-auto px-6 py-8 transition-all duration-300 ${selectedItem ? 'pl-96' : ''}`}
+          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+        >
+          <style jsx>{`
+            main::-webkit-scrollbar {
+              display: none;
+            }
+          `}</style>
         
         {/* SECTION 1: SYSTEM CONSTANTS */}
         <section className="mb-12">

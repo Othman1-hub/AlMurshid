@@ -722,7 +722,7 @@ export default function TaskRoadmap({ projectId, tasks, phases, dependencies }: 
       </div>
 
       {/* ROADMAP VISUALIZATION */}
-      <div className="relative w-full max-w-6xl mx-auto py-10">
+      <div className="relative w-full max-w-6xl mx-auto py-10 pb-32">
         <div className="roadmap-spine"></div>
 
         {phaseState.map((phase, phaseIndex) => {
@@ -876,7 +876,7 @@ export default function TaskRoadmap({ projectId, tasks, phases, dependencies }: 
         })}
 
         {/* BOTTOM: ADD PHASE */}
-        <div className="absolute bottom-[-100px] left-1/2 transform -translate-x-1/2 flex flex-col items-center z-20 pb-20">
+        <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 flex flex-col items-center z-20">
           <div className="w-px h-16 bg-[var(--color-border)]"></div>
           <button
             onClick={() => openPhaseModal()}

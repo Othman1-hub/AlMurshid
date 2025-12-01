@@ -101,12 +101,12 @@ export default function ProjectLayout({ children }: { children: React.ReactNode 
       </div>
 
       <div
-        className={`w-full px-4 sm:px-6 py-6 lg:py-8 flex flex-col gap-4 lg:gap-6 ${
+        className={`w-full px-4 sm:px-6 py-6 lg:py-8 flex flex-col gap-4 lg:gap-6 h-[calc(100vh-4rem)] ${
           isNavCollapsed ? '' : 'lg:flex-row'
         }`}
       >
         {!isNavCollapsed && (
-          <aside className="border border-[var(--color-border)] bg-[var(--color-surface)] p-4 h-max w-full lg:w-72 flex-shrink-0">
+          <aside className="border border-[var(--color-border)] bg-[var(--color-surface)] p-4 w-full lg:w-72 flex-shrink-0 lg:sticky lg:top-20 lg:self-start">
             <div className="mb-4">
               <div className="text-xs font-mono uppercase tracking-widest text-[var(--color-ink-soft)]">Project</div>
               <div className="text-lg font-semibold mt-1">{projectId.toUpperCase()}</div>
@@ -136,7 +136,15 @@ export default function ProjectLayout({ children }: { children: React.ReactNode 
           </aside>
         )}
 
-        <main className="flex-1 min-h-[calc(100vh-240px)] flex flex-col">
+        <main 
+          className="flex-1 flex flex-col overflow-auto" 
+          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+        >
+          <style jsx>{`
+            main::-webkit-scrollbar {
+              display: none;
+            }
+          `}</style>
           {children}
         </main>
       </div>

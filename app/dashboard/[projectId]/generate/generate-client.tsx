@@ -120,6 +120,11 @@ The more detailed the information, the better and more accurate the plan will be
 
   return (
     <div className="min-h-screen flex flex-col bg-[var(--color-bg)] text-[var(--color-ink)] relative overflow-hidden" dir="ltr">
+      <style jsx global>{`
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+        }
+      `}</style>
       <style jsx>{`
         @keyframes gridPulse {
           0%, 100% { opacity: 0.1; }
@@ -250,8 +255,8 @@ The more detailed the information, the better and more accurate the plan will be
         )}
 
         {/* Chat Messages - Gamified */}
-        <div className="flex-1 overflow-hidden relative" style={{ minHeight: '50vh' }}>
-          <div className="h-full overflow-y-auto px-2 py-4 space-y-4 bg-[var(--color-bg)]" dir="ltr">
+        <div className="flex-1 overflow-hidden relative min-h-0">
+          <div className="h-full overflow-y-auto px-2 py-4 space-y-4 bg-[var(--color-bg)] scrollbar-hide" dir="ltr" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             {messages.filter(m => m.role !== 'system').map((m, index) => (
               <div 
                 key={m.id} 
@@ -261,25 +266,32 @@ The more detailed the information, the better and more accurate the plan will be
                 <div
                   className={`group max-w-3xl px-5 py-4 border-2 relative overflow-hidden transition-all hover:scale-[1.02] ${
                     m.role === 'user'
-                      ? 'bg-gradient-to-br from-[var(--color-accent)] to-[var(--color-accent-strong)] border-[var(--color-accent)] text-white shadow-lg hover:shadow-xl'
-                      : 'bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-ink)] hover:border-[var(--color-accent)]/30 shadow-md'
+                      ? 'bg-gradient-to-br from-[var(--color-accent)] to-[var(--color-accent-strong)] border-[var(--color-accent)] text-white shadow-[0_0_25px_-5px_var(--color-accent)] hover:shadow-[0_0_35px_-5px_var(--color-accent)]'
+                      : 'bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-ink)] hover:border-[var(--color-accent)]/50 shadow-lg hover:shadow-xl'
                   }`}
                 >
+                  {/* Corner accent */}
+                  <div className={`absolute top-0 right-0 w-8 h-8 ${
+                    m.role === 'user' ? 'bg-white/10' : 'bg-[var(--color-accent)]/10'
+                  }`} style={{ clipPath: 'polygon(100% 0, 100% 100%, 0 0)' }}></div>
+                  
                   {/* Shine effect on hover */}
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-1000 pointer-events-none"></div>
                   
-                  <div className={`flex items-center gap-2 text-[10px] uppercase font-mono tracking-widest mb-2 font-bold ${
+                  <div className={`flex items-center gap-2 text-[10px] uppercase font-mono tracking-widest mb-2 font-bold relative z-10 ${
                     m.role === 'user' ? 'text-white/90' : 'text-[var(--color-accent)]'
                   }`}>
                     {m.role === 'user' ? (
                       <>
                         <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
                         <span>👤 YOU</span>
+                        <div className="ml-auto text-[8px] opacity-60">#{index + 1}</div>
                       </>
                     ) : (
                       <>
-                        <Sparkles className="w-3 h-3" />
+                        <Sparkles className="w-3 h-3 animate-pulse" />
                         <span>🤖 AL-MURSHID</span>
+                        <div className="ml-auto text-[8px] opacity-60">#{index + 1}</div>
                       </>
                     )}
                   </div>
@@ -478,7 +490,7 @@ The more detailed the information, the better and more accurate the plan will be
         )}
 
         {/* Input Area - Gamified */}
-        <div className="relative flex flex-col gap-3 bg-gradient-to-br from-[var(--color-surface)] to-[var(--color-surface-alt)] p-5 border-2 border-[var(--color-border)] shadow-xl">
+        <div className="relative flex flex-col gap-3 bg-gradient-to-br from-[var(--color-surface)] to-[var(--color-surface-alt)] p-5 border-2 border-[var(--color-border)] shadow-xl flex-shrink-0">
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[var(--color-accent)] via-transparent to-[var(--color-accent)]"></div>
           
           <form onSubmit={handleSubmit} className="flex items-center gap-3">
