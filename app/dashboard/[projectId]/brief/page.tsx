@@ -22,6 +22,7 @@ export default function ProjectBriefPage({ params }: any) {
   const [briefSaved, setBriefSaved] = useState(false);
   const [promptSaved, setPromptSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<number>(1);
 
   // Fetch brief data on mount
   useEffect(() => {
@@ -32,6 +33,11 @@ export default function ProjectBriefPage({ params }: any) {
         if (data) {
           setBriefText(data.breif || '');
           setPromptText(data.prompt || '');
+          setUserRole(data.role ?? 1);
+          if (data.role === 3) {
+            setIsBriefLocked(true);
+            setIsPromptLocked(true);
+          }
         }
       } catch (err) {
         console.error('Failed to fetch brief:', err);
@@ -116,6 +122,7 @@ export default function ProjectBriefPage({ params }: any) {
     alert('SEQUENCE_COPIED_TO_CLIPBOARD');
   };
 
+  const isReadOnly = userRole === 3;
   const downloadBriefAsMd = () => {
     const blob = new Blob([briefText], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);
@@ -164,6 +171,8 @@ export default function ProjectBriefPage({ params }: any) {
               </div>
             )}
             <button
+              onClick={() => !isReadOnly && setIsBriefLocked((prev) => !prev)}
+              disabled={isReadOnly}
               onClick={downloadBriefAsMd}
               className="text-xs font-mono uppercase flex items-center gap-2 px-3 py-2 border border-[var(--color-border)] text-[var(--color-ink-soft)] hover:text-[var(--color-ink)] hover:border-[var(--color-ink)] transition-colors"
               title="Download as Markdown"
@@ -198,7 +207,7 @@ export default function ProjectBriefPage({ params }: any) {
                 isBriefLocked
                   ? 'text-[var(--color-ink-soft)] hover:text-[var(--color-ink)] hover:border-[var(--color-ink)]'
                   : 'text-[var(--color-accent)] border-[var(--color-accent)]'
-              }`}
+              } ${isReadOnly ? 'opacity-60 cursor-not-allowed' : ''}`}
             >
               {isBriefLocked ? (
                 <>
@@ -210,7 +219,7 @@ export default function ProjectBriefPage({ params }: any) {
                 </>
               )}
             </button>
-            {!isBriefLocked && (
+            {!isBriefLocked && !isReadOnly && (
               <button
                 onClick={handleSaveBrief}
                 disabled={savingBrief}
@@ -241,6 +250,17 @@ export default function ProjectBriefPage({ params }: any) {
               </div>
             </div>
 
+            <textarea
+              value={briefText}
+              onChange={(e) => setBriefText(e.target.value)}
+              disabled={isBriefLocked || isReadOnly}
+              className={`flex-1 min-h-[50vh] w-full bg-[var(--color-surface)]/70 p-6 font-mono text-sm leading-7 resize-none focus:outline-none transition-colors ${
+                isBriefLocked
+                  ? 'cursor-default text-[var(--color-ink)]'
+                  : 'text-[var(--color-ink)] focus:bg-[var(--color-surface-alt)]/40'
+              }`}
+              spellCheck={false}
+            />
             {viewMode === 'edit' ? (
               <textarea
                 value={briefText}
@@ -307,7 +327,7 @@ export default function ProjectBriefPage({ params }: any) {
                 )}
                 <button
                   onClick={handleRegeneratePrompt}
-                  disabled={regeneratingPrompt}
+                  disabled={regeneratingPrompt || isReadOnly}
                   className="text-[10px] font-mono font-bold uppercase text-[var(--color-accent)] hover:text-[var(--color-ink)] flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
                   title="Regenerate prompt based on current project state"
                 >
@@ -322,20 +342,22 @@ export default function ProjectBriefPage({ params }: any) {
                 </button>
                 {isPromptLocked ? (
                   <button
-                    onClick={() => setShowUnlockConfirm(true)}
+                    onClick={() => !isReadOnly && setShowUnlockConfirm(true)}
                     className="text-[10px] font-mono uppercase text-[var(--color-ink-soft)] hover:text-[var(--color-accent)] flex items-center gap-1"
+                    disabled={isReadOnly}
                   >
                     <Lock className="w-3 h-3" /> Locked
                   </button>
                 ) : (
                   <button
-                    onClick={() => setIsPromptLocked(true)}
+                    onClick={() => !isReadOnly && setIsPromptLocked(true)}
                     className="text-[10px] font-mono uppercase text-[var(--color-accent)] flex items-center gap-1"
+                    disabled={isReadOnly}
                   >
                     <Unlock className="w-3 h-3" /> Open
                   </button>
                 )}
-                {!isPromptLocked && (
+                {!isPromptLocked && !isReadOnly && (
                   <button
                     onClick={handleSavePrompt}
                     disabled={savingPrompt}
@@ -349,7 +371,7 @@ export default function ProjectBriefPage({ params }: any) {
             <textarea
               value={promptText}
               onChange={(e) => setPromptText(e.target.value)}
-              disabled={isPromptLocked}
+              disabled={isPromptLocked || isReadOnly}
               className={`flex-1 w-full bg-[var(--color-surface)] border-0 p-4 font-mono text-xs leading-relaxed resize-none focus:outline-none transition-all ${
                 isPromptLocked ? 'opacity-60 cursor-not-allowed text-[var(--color-ink-soft)]' : 'text-[var(--color-ink)] focus:bg-[var(--color-surface-alt)]/40'
               }`}
@@ -358,7 +380,7 @@ export default function ProjectBriefPage({ params }: any) {
         </div>
       </div>
 
-      {showUnlockConfirm && (
+      {showUnlockConfirm && !isReadOnly && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
           <div className="bg-[var(--color-bg)] border border-[var(--color-accent)] p-6 max-w-sm w-full shadow-[0_0_50px_rgba(0,0,0,0.5)] text-center">
             <AlertTriangle className="w-10 h-10 text-[var(--color-accent)] mx-auto mb-3" />

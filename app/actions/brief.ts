@@ -17,7 +17,7 @@ export async function getProjectBrief(projectId: number) {
       supabase,
       user.id,
       projectId,
-      "breif, prompt, user_id"
+      "breif, prompt, user_id, teams(role)"
     );
 
     if (error || !project) {
@@ -25,7 +25,14 @@ export async function getProjectBrief(projectId: number) {
       return null;
     }
 
-    return { breif: project.breif, prompt: project.prompt };
+    // Determine role: owner => 1, teammate => teams.role, default 2
+    const roleFromTeam =
+      Array.isArray((project as any).teams) && (project as any).teams[0]
+        ? (project as any).teams[0].role
+        : 2;
+    const role = project.user_id === user.id ? 1 : roleFromTeam ?? 2;
+
+    return { breif: project.breif, prompt: project.prompt, role };
   } catch (err) {
     console.error("Error in getProjectBrief:", err);
     return null;

@@ -41,12 +41,13 @@ interface UiTask {
   time_estimate: number;
   xp: number;
   baseStatus: UiTaskStatus;
-  rawStatus: string; 
+  rawStatus: string;
   tools: string[];
   hints: string[];
   phase_id: number | null;
   created_at?: string;
   displayOrder: number;
+  assigned_to?: string | null;
 }
 
 interface PhaseWithTasks extends DbPhase {
@@ -59,6 +60,8 @@ interface TaskRoadmapProps {
   tasks: DbTask[];
   phases: DbPhase[];
   dependencies: TaskDependency[];
+  teammates: { id: string; name?: string }[];
+  currentUserRole: number;
 }
 
 // --- HELPERS ---
@@ -134,6 +137,7 @@ const buildPhaseState = (
     phase_id: task.phase_id ?? null,
     created_at: task.created_at,
     displayOrder: displayOrderMap.get(task.id) || task.id,
+    assigned_to: (task as any).assigned_to ?? null,
   });
 
   const phaseTasksMap = new Map<number, UiTask[]>();
@@ -204,8 +208,9 @@ const DifficultyBadge = ({
   );
 };
 
-export default function TaskRoadmap({ projectId, tasks, phases, dependencies }: TaskRoadmapProps) {
+export default function TaskRoadmap({ projectId, tasks, phases, dependencies, teammates, currentUserRole }: TaskRoadmapProps) {
   const supabase = useMemo(() => createSupabaseClient(), []);
+  const isReadOnly = currentUserRole === 3;
   
   // Initialize state with props
   const [phaseState, setPhaseState] = useState<PhaseWithTasks[]>(() =>
@@ -214,6 +219,7 @@ export default function TaskRoadmap({ projectId, tasks, phases, dependencies }: 
   
   const [dependencyState, setDependencyState] = useState<TaskDependency[]>(dependencies || []);
   const [expandedTask, setExpandedTask] = useState<number | null>(null);
+  const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
 
   const [toast, setToast] = useState<{ type: 'error' | 'success'; message: string } | null>(null);
 
@@ -229,6 +235,7 @@ export default function TaskRoadmap({ projectId, tasks, phases, dependencies }: 
     tools: '',
     hints: '',
     predecessors: [] as number[],
+    assignedTo: '',
   });
 
   // Phase Creation Modal
@@ -258,6 +265,41 @@ export default function TaskRoadmap({ projectId, tasks, phases, dependencies }: 
   }, [phaseState]);
 
   const allUiTasks = useMemo(() => phaseState.flatMap(p => p.tasks), [phaseState]);
+
+  const handleAssignmentChange = async (taskId: number, assigneeId: string) => {
+    if (isReadOnly) {
+      showError('You do not have permission to edit assignments.');
+      return;
+    }
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    if (userError || !userData?.user) {
+      showError('Please sign in to update assignments.');
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from('tasks')
+      .update({ assigned_to: assigneeId || null })
+      .eq('id', taskId)
+      .eq('project_id', projectId)
+      .select('assigned_to')
+      .single();
+
+    if (error) {
+      showError(error.message);
+      return;
+    }
+
+    setPhaseState((prev) =>
+      prev.map((phase) => ({
+        ...phase,
+        tasks: phase.tasks.map((t) =>
+          t.id === taskId ? { ...t, assigned_to: data?.assigned_to ?? null } : t
+        ),
+      }))
+    );
+    showSuccess('Assignment updated');
+  };
 
   const hasIncompleteDependencies = (taskId: number) => {
     const predecessors = dependencyState
@@ -311,6 +353,7 @@ export default function TaskRoadmap({ projectId, tasks, phases, dependencies }: 
   // --- MODAL HANDLERS ---
 
   const openPhaseModal = (phase?: PhaseWithTasks) => {
+    if (isReadOnly) return;
     if (phase) {
       setEditingPhaseId(phase.id);
       setPhaseFormData({ name: phase.name, description: phase.description || '' });
@@ -373,6 +416,7 @@ export default function TaskRoadmap({ projectId, tasks, phases, dependencies }: 
   };
 
   const openAddTaskModal = (phaseId: number) => {
+    if (isReadOnly) return;
     setTargetPhaseId(phaseId);
     setNewTaskData({
       name: '',
@@ -383,6 +427,7 @@ export default function TaskRoadmap({ projectId, tasks, phases, dependencies }: 
       tools: '',
       hints: '',
       predecessors: [],
+      assignedTo: '',
     });
     setIsTaskModalOpen(true);
   };
@@ -429,6 +474,7 @@ export default function TaskRoadmap({ projectId, tasks, phases, dependencies }: 
         hints: dbHints,
         status: 'not_started', // Explicitly use valid enum (Waiting)
         phase_id: phaseIdForDb,
+        assigned_to: newTaskData.assignedTo || null,
       })
       .select()
       .single();
@@ -480,6 +526,7 @@ export default function TaskRoadmap({ projectId, tasks, phases, dependencies }: 
           phase_id: createdTask.phase_id ?? null,
           created_at: createdTask.created_at,
           displayOrder,
+          assigned_to: createdTask.assigned_to ?? null,
           // @ts-ignore - for UI optimism only
           predecessors: newTaskData.predecessors, 
         };
@@ -738,20 +785,22 @@ export default function TaskRoadmap({ projectId, tasks, phases, dependencies }: 
               
               {/* PHASE NODE (Center Interaction Point) */}
               <div className="absolute left-1/2 top-0 transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center z-20 group/node">
-                <button
-                  onClick={() => openAddTaskModal(phase.id)}
-                  className={`w-14 h-14 rounded-full flex items-center justify-center transition-all shadow-[0_0_20px_-5px_rgba(0,0,0,0.5)] cursor-pointer relative border-2 bg-[var(--color-bg)] border-[var(--color-accent)] hover:bg-[var(--color-accent)] hover:text-white`}
-                  title="Add Task to Phase"
-                >
-                  <Layers className={`w-6 h-6 text-[var(--color-accent)] group-hover/node:text-white`} />
-                  <div className="absolute -bottom-1 -right-1 bg-[var(--color-bg)] rounded-full border border-[var(--color-border)]">
-                    <PlusCircle className="w-5 h-5 text-[var(--color-success)] fill-[var(--color-bg)]" />
-                  </div>
-                </button>
+                {!isReadOnly && (
+                  <button
+                    onClick={() => openAddTaskModal(phase.id)}
+                    className={`w-14 h-14 rounded-full flex items-center justify-center transition-all shadow-[0_0_20px_-5px_rgba(0,0,0,0.5)] cursor-pointer relative border-2 bg-[var(--color-bg)] border-[var(--color-accent)] hover:bg-[var(--color-accent)] hover:text-white`}
+                    title="Add Task to Phase"
+                  >
+                    <Layers className={`w-6 h-6 text-[var(--color-accent)] group-hover/node:text-white`} />
+                    <div className="absolute -bottom-1 -right-1 bg-[var(--color-bg)] rounded-full border border-[var(--color-border)]">
+                      <PlusCircle className="w-5 h-5 text-[var(--color-success)] fill-[var(--color-bg)]" />
+                    </div>
+                  </button>
+                )}
 
                 <button
-                  onClick={() => openPhaseModal(phase)}
-                  className={`mt-3 px-4 py-1.5 text-[10px] font-mono font-bold uppercase tracking-widest border min-w-[150px] text-center transition-colors bg-[var(--color-bg)] border-[var(--color-accent)] text-[var(--color-accent)] hover:bg-[var(--color-surface-alt)]`}
+                  onClick={() => !isReadOnly && openPhaseModal(phase)}
+                  className={`mt-3 px-4 py-1.5 text-[10px] font-mono font-bold uppercase tracking-widest border min-w-[150px] text-center transition-colors bg-[var(--color-bg)] border-[var(--color-accent)] text-[var(--color-accent)] ${isReadOnly ? 'opacity-60 cursor-not-allowed' : 'hover:bg-[var(--color-surface-alt)]'}`}
                 >
                   <div className="text-[8px] text-[var(--color-ink-soft)] mb-0.5 pointer-events-none">PHASE-{String(phase.pr_id).padStart(2, '0')}</div>
                   <div className="truncate max-w-[200px]">{phase.name}</div>
@@ -814,6 +863,14 @@ export default function TaskRoadmap({ projectId, tasks, phases, dependencies }: 
                             >
                               {task.name}
                             </div>
+                            <div className={`mt-2 text-[10px] font-mono text-[var(--color-ink-soft)] ${isLeft ? 'text-right' : 'text-left'}`}>
+                              Assigned to:{' '}
+                              <span className="text-[var(--color-ink)]">
+                                {task.assigned_to
+                                  ? teammates.find((m) => m.id === task.assigned_to)?.name || 'Teammate'
+                                  : 'Unassigned'}
+                              </span>
+                            </div>
                             <div className={`flex items-center gap-4 mt-2 text-[10px] font-mono text-[var(--color-ink-soft)] ${isLeft ? 'justify-end' : 'justify-start'}`}>
                               <span className="flex items-center gap-1">
                                 <Clock className="w-3 h-3" /> {task.time_estimate}h
@@ -826,45 +883,93 @@ export default function TaskRoadmap({ projectId, tasks, phases, dependencies }: 
                         {/* EXPANDED DETAILS: EDIT FORM */}
                         {isExpanded && (
                           <div className="animate-in slide-in-from-top-2 duration-200">
-                             <EditTaskForm 
-                               task={{ ...task, status: task.rawStatus }} 
-                               projectId={projectId}
-                               onSuccess={(updatedTask) => {
-                                 if (updatedTask === null) {
-                                   // Task was deleted - remove it from state
-                                   setPhaseState((prev) =>
-                                     prev.map((phase) => ({
-                                       ...phase,
-                                       tasks: phase.tasks.filter((t) => t.id !== task.id),
-                                     }))
-                                   );
-                                 } else {
-                                   // Task was updated
-                                   setPhaseState((prev) =>
-                                     prev.map((phase) => ({
-                                       ...phase,
-                                       tasks: phase.tasks.map((t) =>
-                                         t.id === task.id
-                                           ? {
-                                               ...t,
-                                               name: updatedTask.name,
-                                               description: updatedTask.description,
-                                               difficulty: mapDbDifficultyToUi(updatedTask.difficulty),
-                                               time_estimate: updatedTask.time_estimate,
-                                               xp: Number(updatedTask.xp) || 0,
-                                               baseStatus: mapDbStatusToUi(updatedTask.status),
-                                               rawStatus: updatedTask.status,
-                                               tools: parseListField(updatedTask.tools),
-                                               hints: parseListField(updatedTask.hints),
-                                             }
-                                           : t
-                                       ),
-                                     }))
-                                   );
-                                 }
-                               }}
-                               onCancel={() => toggleExpand(task.id)} 
-                             />
+                            {editingTaskId !== task.id ? (
+                              <div className="space-y-3 text-[var(--color-ink)] text-sm border border-[var(--color-border)] p-4 bg-[var(--color-surface)]">
+                                <div className="flex justify-between text-[10px] font-mono text-[var(--color-ink-soft)] uppercase tracking-widest">
+                                  <span>Difficulty: {task.difficulty}</span>
+                                  <span>XP: {task.xp}</span>
+                                </div>
+                                <div className="text-[var(--color-ink)]">{task.description || 'No description'}</div>
+                                <div className="text-[10px] font-mono text-[var(--color-ink-soft)] flex flex-wrap gap-4">
+                                  <span>Time: {task.time_estimate}h</span>
+                                  <span>Tools: {task.tools.join(', ') || 'None'}</span>
+                                  <span>Hints: {task.hints.join(', ') || 'None'}</span>
+                                </div>
+                                {!isReadOnly && (
+                                  <div className="flex justify-end">
+                                    <button
+                                      onClick={() => setEditingTaskId(task.id)}
+                                      className="px-4 py-2 border border-[var(--color-border)] text-xs font-mono hover:bg-[var(--color-surface-alt)]"
+                                    >
+                                      EDIT
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="space-y-4">
+                                <div className="space-y-2">
+                                  <label className="text-[10px] font-mono text-[var(--color-ink-soft)] uppercase tracking-widest block">
+                                    Assign to
+                                  </label>
+                                  <select
+                                    value={task.assigned_to || ''}
+                                    onChange={(e) => handleAssignmentChange(task.id, e.target.value)}
+                                    className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] text-sm text-[var(--color-ink)] p-2"
+                                    disabled={isReadOnly}
+                                  >
+                                    <option value="">Unassigned</option>
+                                    {teammates.map((member) => (
+                                      <option key={member.id} value={member.id}>
+                                        {member.name || member.id}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                                <EditTaskForm
+                                  task={{ ...task, status: task.rawStatus }}
+                                  projectId={projectId}
+                                  onSuccess={(updatedTask) => {
+                                    if (updatedTask === null) {
+                                      setPhaseState((prev) =>
+                                        prev.map((phase) => ({
+                                          ...phase,
+                                          tasks: phase.tasks.filter((t) => t.id !== task.id),
+                                        }))
+                                      );
+                                    } else {
+                                      setPhaseState((prev) =>
+                                        prev.map((phase) => ({
+                                          ...phase,
+                                          tasks: phase.tasks.map((t) =>
+                                            t.id === task.id
+                                              ? {
+                                                  ...t,
+                                                  name: updatedTask.name,
+                                                  description: updatedTask.description,
+                                                  difficulty: mapDbDifficultyToUi(updatedTask.difficulty),
+                                                  time_estimate: updatedTask.time_estimate,
+                                                  xp: Number(updatedTask.xp) || 0,
+                                                  baseStatus: mapDbStatusToUi(updatedTask.status),
+                                                  rawStatus: updatedTask.status,
+                                                  tools: parseListField(updatedTask.tools),
+                                                  hints: parseListField(updatedTask.hints),
+                                                  assigned_to: (updatedTask as any).assigned_to ?? t.assigned_to,
+                                                }
+                                              : t
+                                          ),
+                                        }))
+                                      );
+                                    }
+                                    setEditingTaskId(null);
+                                  }}
+                                  onCancel={() => {
+                                    setEditingTaskId(null);
+                                    toggleExpand(task.id);
+                                  }}
+                                />
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
@@ -877,16 +982,18 @@ export default function TaskRoadmap({ projectId, tasks, phases, dependencies }: 
         })}
 
         {/* BOTTOM: ADD PHASE */}
-        <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 flex flex-col items-center z-20">
-          <div className="w-px h-16 bg-[var(--color-border)]"></div>
-          <button
-            onClick={() => openPhaseModal()}
-            className="group flex items-center gap-2 px-6 py-3 bg-[var(--color-surface)] border border-[var(--color-accent)] text-[var(--color-accent)] hover:bg-[var(--color-accent)] hover:text-white transition-all shadow-[0_0_30px_-10px_var(--color-accent)]"
-          >
-            <Plus className="w-5 h-5" />
-            <span className="font-mono text-xs font-bold uppercase tracking-widest">ADD PHASE</span>
-          </button>
-        </div>
+        {!isReadOnly && (
+          <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 flex flex-col items-center z-20">
+            <div className="w-px h-16 bg-[var(--color-border)]"></div>
+            <button
+              onClick={() => openPhaseModal()}
+              className="group flex items-center gap-2 px-6 py-3 bg-[var(--color-surface)] border border-[var(--color-accent)] text-[var(--color-accent)] hover:bg-[var(--color-accent)] hover:text-white transition-all shadow-[0_0_30px_-10px_var(--color-accent)]"
+            >
+              <Plus className="w-5 h-5" />
+              <span className="font-mono text-xs font-bold uppercase tracking-widest">ADD PHASE</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* PHASE MODAL */}
@@ -1012,7 +1119,7 @@ export default function TaskRoadmap({ projectId, tasks, phases, dependencies }: 
                 <div className="flex items-center gap-2 text-[var(--color-ink)] font-mono text-xs font-bold uppercase tracking-widest border-b border-[var(--color-border)] pb-2">
                   <Zap className="w-3 h-3" /> Parameters
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                   <div className="space-y-3">
                     <label className="text-[10px] font-mono text-[var(--color-ink-soft)] uppercase tracking-widest block">Difficulty Rating</label>
                     <div className="flex flex-wrap gap-2">
@@ -1020,6 +1127,21 @@ export default function TaskRoadmap({ projectId, tasks, phases, dependencies }: 
                         <DifficultyBadge key={diff} level={diff} selected={newTaskData.difficulty === diff} onClick={() => setNewTaskData({ ...newTaskData, difficulty: diff })} />
                       ))}
                     </div>
+                  </div>
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-mono text-[var(--color-ink-soft)] uppercase tracking-widest block">Assign To</label>
+                    <select
+                      value={newTaskData.assignedTo}
+                      onChange={(e) => setNewTaskData({ ...newTaskData, assignedTo: e.target.value })}
+                      className="w-full bg-[var(--color-surface-alt)] border border-[var(--color-border)] p-3 text-sm text-[var(--color-ink)]"
+                    >
+                      <option value="">Unassigned</option>
+                      {teammates.map((member) => (
+                        <option key={member.id} value={member.id}>
+                          {member.name || member.id}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   <div className="space-y-2">
                     <label className="text-[10px] font-mono text-[var(--color-ink-soft)] uppercase tracking-widest">XP Reward</label>
