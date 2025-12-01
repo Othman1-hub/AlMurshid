@@ -20,6 +20,7 @@ import {
   Tag
 } from 'lucide-react';
 import { addMemory, getProjectMemories, deleteMemory, MemoryType } from '@/app/actions/memory';
+import { createClient as createSupabaseClient } from '@/utils/supabase/client';
 
 /* --- UI COMPONENTS --- */
 
@@ -310,6 +311,7 @@ export default function ProjectMemory({ params }: any) {
   const [memories, setMemories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeModal, setActiveModal] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<number>(1);
 
   // Fetch memories
   useEffect(() => {
@@ -319,6 +321,28 @@ export default function ProjectMemory({ params }: any) {
         const data = await getProjectMemories(projectId);
         if (data) {
           setMemories(data);
+        }
+
+        // Resolve role (owner=1, teammate role, default 2)
+        const supabase = createSupabaseClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: ownerRow } = await supabase
+            .from('projects')
+            .select('user_id')
+            .eq('id', projectId)
+            .maybeSingle();
+          if (ownerRow?.user_id === user.id) {
+            setUserRole(1);
+          } else {
+            const { data: teamRow } = await supabase
+              .from('teams')
+              .select('role')
+              .eq('project_id', projectId)
+              .eq('user_id', user.id)
+              .maybeSingle();
+            setUserRole(teamRow?.role ?? 2);
+          }
         }
       } catch (err) {
         console.error('Failed to fetch memories:', err);
@@ -334,6 +358,7 @@ export default function ProjectMemory({ params }: any) {
   const constants = memories.filter(i => i.type === 'constants');
   const fragments = memories.filter(i => i.type === 'fragments');
   const resources = memories.filter(i => i.type === 'external_resources');
+  const isReadOnly = userRole === 3;
 
   const handleFormSuccess = async () => {
     const data = await getProjectMemories(projectId);
@@ -463,13 +488,15 @@ export default function ProjectMemory({ params }: any) {
                 </div>
               </div>
             ))}
-            <button 
-              onClick={() => setActiveModal('constants')}
-              className="border border-dashed border-[var(--color-border-strong)] p-4 flex flex-col items-center justify-center gap-2 text-[var(--color-ink-soft)] hover:text-[var(--color-ink)] hover:border-[var(--color-ink)] transition-colors"
-            >
-              <Plus className="w-5 h-5" />
-              <span className="text-xs font-mono">DEFINE_CONSTANT</span>
-            </button>
+            {!isReadOnly && (
+              <button 
+                onClick={() => setActiveModal('constants')}
+                className="border border-dashed border-[var(--color-border-strong)] p-4 flex flex-col items-center justify-center gap-2 text-[var(--color-ink-soft)] hover:text-[var(--color-ink)] hover:border-[var(--color-ink)] transition-colors"
+              >
+                <Plus className="w-5 h-5" />
+                <span className="text-xs font-mono">DEFINE_CONSTANT</span>
+              </button>
+            )}
           </div>
         </section>
 
@@ -569,15 +596,17 @@ export default function ProjectMemory({ params }: any) {
           </div>
 
           {/* Add Resource Button */}
-          <div className="mt-4">
-            <button 
-              onClick={() => setActiveModal('external_resources')}
-              className="w-full px-6 py-3 border border-[var(--color-accent)] text-[var(--color-accent)] font-mono text-xs font-bold hover:bg-[var(--color-accent)]/5 transition-colors flex items-center justify-center gap-2"
-            >
-              <Plus className="w-4 h-4" />
-              ADD_RESOURCE
-            </button>
-          </div>
+          {!isReadOnly && (
+            <div className="mt-4">
+              <button 
+                onClick={() => setActiveModal('external_resources')}
+                className="w-full px-6 py-3 border border-[var(--color-accent)] text-[var(--color-accent)] font-mono text-xs font-bold hover:bg-[var(--color-accent)]/5 transition-colors flex items-center justify-center gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                ADD_RESOURCE
+              </button>
+            </div>
+          )}
         </section>
 
       </main>

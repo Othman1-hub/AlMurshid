@@ -6,6 +6,7 @@ import { useChat } from 'ai/react';
 import { CheckCircle2, RefreshCw, Send } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { createClient as createSupabaseClient } from '@/utils/supabase/client';
 
 export default function ProjectAiPage() {
   const params = useParams();
@@ -16,9 +17,45 @@ export default function ProjectAiPage() {
   const [toolExecutionMessage, setToolExecutionMessage] = useState<string | null>(null);
   const [stats, setStats] = useState({ phases: 0, tasks: 0, dependencies: 0, memories: 0 });
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [userRole, setUserRole] = useState<number>(1);
+  const isLocked = userRole === 3;
+
+  useEffect(() => {
+    const resolveRole = async () => {
+      try {
+        const supabase = createSupabaseClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        const { data: ownerRow } = await supabase
+          .from('projects')
+          .select('user_id')
+          .eq('id', projectId)
+          .maybeSingle();
+        if (ownerRow?.user_id === user.id) {
+          setUserRole(1);
+          return;
+        }
+        const { data: teamRow } = await supabase
+          .from('teams')
+          .select('role')
+          .eq('project_id', projectId)
+          .eq('user_id', user.id)
+          .maybeSingle();
+        setUserRole(teamRow?.role ?? 2);
+      } catch (err) {
+        console.error('Failed to resolve role', err);
+      }
+    };
+    resolveRole();
+  }, [projectId]);
 
   // Load project stats
   const loadProjectData = useCallback(async () => {
+    if (isLocked) {
+      setLoading(false);
+      setRefreshing(false);
+      return;
+    }
     setRefreshing(true);
     try {
       const [tasksRes, phasesRes, depsRes, memoriesRes] = await Promise.all([
@@ -47,7 +84,7 @@ export default function ProjectAiPage() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [projectId]);
+  }, [projectId, isLocked]);
 
   const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
     api: '/api/chat',
@@ -75,6 +112,30 @@ export default function ProjectAiPage() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  if (isLocked) {
+    return (
+      <div className="flex-1 flex items-center justify-center bg-[var(--color-bg)] text-[var(--color-ink)]" dir="ltr">
+        <div className="text-center border border-[var(--color-border)] px-6 py-8 bg-[var(--color-surface)] shadow-lg max-w-md">
+          <div className="text-[var(--color-accent)] mb-2">
+            <CheckCircle2 className="w-10 h-10 mx-auto rotate-45 opacity-70" />
+          </div>
+          <div className="text-lg font-mono font-bold">AI ACCESS LOCKED</div>
+          <div className="text-xs font-mono text-[var(--color-ink-soft)] mt-2">
+            Your role does not allow AI interactions for this project.
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const handleLockedSubmit = (e: React.FormEvent) => {
+    if (isLocked) {
+      e.preventDefault();
+      return;
+    }
+    handleSubmit(e);
+  };
 
   return (
     <div className="flex-1 flex flex-col gap-4 h-full overflow-hidden" dir="ltr">
@@ -220,17 +281,17 @@ export default function ProjectAiPage() {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="flex items-center gap-3 bg-[var(--color-bg)] p-3 flex-shrink-0">
+      <form onSubmit={handleLockedSubmit} className="flex items-center gap-3 bg-[var(--color-bg)] p-3 flex-shrink-0">
         <input
           value={input}
           onChange={handleInputChange}
-          disabled={isLoading || loading}
+          disabled={isLoading || loading || isLocked}
           className="flex-1 px-4 py-3 bg-[var(--color-surface)] text-[var(--color-ink)] placeholder-[var(--color-ink-soft)] focus:outline-none disabled:opacity-50"
           placeholder="Ask about tasks, request changes, or get project analysis..."
         />
         <button
           type="submit"
-          disabled={isLoading || loading || !input.trim()}
+          disabled={isLoading || loading || !input.trim() || isLocked}
           className="inline-flex items-center gap-2 px-4 py-3 bg-[var(--color-accent)] text-[var(--color-ink)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Send className="w-4 h-4" />
