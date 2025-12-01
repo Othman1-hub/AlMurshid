@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
       ] = await Promise.all([
         supabase.from('tasks').select('*').eq('project_id', projectId).order('created_at', { ascending: true }),
         supabase.from('phases').select('*').eq('project_id', projectId).order('order_index', { ascending: true }),
-        supabase.from('task_dependencies').select('*').eq('project_id', projectId),
+        supabase.from('task_dependencies').select('*'),
         supabase.from('memory').select('*').eq('project_id', projectId)
       ]);
 

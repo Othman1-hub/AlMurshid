@@ -256,7 +256,7 @@ export const addDependencyTool = tool({
     predecessorTaskId: z.number(),
     projectId: z.number(),
   }),
-  execute: async ({ taskId, predecessorTaskId, projectId }) => {
+  execute: async ({ taskId, predecessorTaskId }) => {
     try {
       const supabase = await createClient();
       const { data: { user } } = await supabase.auth.getUser();
@@ -267,7 +267,6 @@ export const addDependencyTool = tool({
         .insert({
           task_id: taskId,
           predecessor_task_id: predecessorTaskId,
-          project_id: projectId,
         })
         .select()
         .single();
@@ -286,7 +285,7 @@ export const removeDependencyTool = tool({
     dependencyId: z.number(),
     projectId: z.number(),
   }),
-  execute: async ({ dependencyId, projectId }) => {
+  execute: async ({ dependencyId }) => {
     try {
       const supabase = await createClient();
       const { data: { user } } = await supabase.auth.getUser();
@@ -295,11 +294,265 @@ export const removeDependencyTool = tool({
       const { error } = await supabase
         .from('task_dependencies')
         .delete()
-        .eq('id', dependencyId)
-        .eq('project_id', projectId);
+        .eq('id', dependencyId);
 
       if (error) return { success: false, error: error.message };
       return { success: true, message: `✅ Removed dependency` };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Failed' };
+    }
+  },
+});
+
+/**
+ * Collaboration & Team Management Tools
+ */
+
+export const getTeammatesTool = tool({
+  description: 'Get all teammates in the project with their roles and details. Use this to see who can be assigned to tasks.',
+  parameters: z.object({
+    projectId: z.number(),
+  }),
+  execute: async ({ projectId }) => {
+    try {
+      const supabase = await createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return { success: false, error: 'Not authenticated' };
+
+      // Get project owner
+      const { data: project, error: projectError } = await supabase
+        .from('projects')
+        .select('user_id')
+        .eq('id', projectId)
+        .single();
+
+      if (projectError || !project) {
+        return { success: false, error: 'Project not found' };
+      }
+
+      // Get team members
+      const { data: teamMembers, error: teamError } = await supabase
+        .from('teams')
+        .select('id, user_id, role, joined_at')
+        .eq('project_id', projectId);
+
+      if (teamError) {
+        return { success: false, error: `Teams query failed: ${teamError.message}` };
+      }
+
+      // Get all user IDs to fetch profiles
+      const userIds = [project.user_id, ...(teamMembers || []).map(m => m.user_id)];
+      
+      // Get all profiles in one query
+      const { data: profiles, error: profileError } = await supabase
+        .from('profiles')
+        .select('id, username, avatar_url, level, total_xp')
+        .in('id', userIds);
+
+      if (profileError) {
+        return { success: false, error: `Profiles query failed: ${profileError.message}` };
+      }
+
+      // Create a map for quick profile lookup
+      const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
+
+      // Build teammates list
+      const ownerProfile = profileMap.get(project.user_id);
+      const teammates = [
+        ...(ownerProfile ? [{
+          user_id: ownerProfile.id,
+          username: ownerProfile.username,
+          role: 1,
+          role_name: 'Owner',
+          level: ownerProfile.level,
+          total_xp: ownerProfile.total_xp,
+          avatar_url: ownerProfile.avatar_url,
+        }] : []),
+        ...(teamMembers || []).map(member => {
+          const profile = profileMap.get(member.user_id);
+          return {
+            user_id: member.user_id,
+            username: profile?.username || 'Unknown',
+            role: member.role,
+            role_name: member.role === 2 ? 'Contributor' : 'Viewer',
+            level: profile?.level || 1,
+            total_xp: profile?.total_xp || 0,
+            avatar_url: profile?.avatar_url,
+            joined_at: member.joined_at,
+          };
+        }),
+      ];
+
+      return { 
+        success: true, 
+        teammates, 
+        count: teammates.length,
+        message: `👥 Found ${teammates.length} teammate${teammates.length !== 1 ? 's' : ''}: ${teammates.map(t => `${t.username} (${t.role_name})`).join(', ')}` 
+      };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Failed to get teammates' };
+    }
+  },
+});
+
+export const assignTaskToTeammateTool = tool({
+  description: 'Assign a task to a teammate. Use getTeammates first to see available team members. Provide their user_id to assign.',
+  parameters: z.object({
+    projectId: z.number(),
+    taskId: z.number(),
+    userId: z.string().describe('The user_id (UUID) of the teammate to assign the task to'),
+  }),
+  execute: async ({ projectId, taskId, userId }) => {
+    try {
+      const supabase = await createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return { success: false, error: 'Not authenticated' };
+
+      // Verify the user is part of the project
+      const { data: project } = await supabase
+        .from('projects')
+        .select('user_id')
+        .eq('id', projectId)
+        .single();
+
+      const { data: teamMember } = await supabase
+        .from('teams')
+        .select('user_id')
+        .eq('project_id', projectId)
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (!teamMember && project?.user_id !== userId) {
+        return { success: false, error: 'User is not a member of this project' };
+      }
+
+      // Get teammate name
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('username')
+        .eq('id', userId)
+        .single();
+
+      // Assign task
+      const { data: task, error } = await supabase
+        .from('tasks')
+        .update({ assigned_to: userId })
+        .eq('id', taskId)
+        .eq('project_id', projectId)
+        .select('id, name')
+        .single();
+
+      if (error) return { success: false, error: error.message };
+      
+      return { 
+        success: true, 
+        task, 
+        assigned_to: profile?.username,
+        message: `✅ Assigned task "${task.name}" to ${profile?.username || 'teammate'}` 
+      };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Failed' };
+    }
+  },
+});
+
+export const unassignTaskTool = tool({
+  description: 'Remove task assignment, making it unassigned.',
+  parameters: z.object({
+    projectId: z.number(),
+    taskId: z.number(),
+  }),
+  execute: async ({ projectId, taskId }) => {
+    try {
+      const supabase = await createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return { success: false, error: 'Not authenticated' };
+
+      const { data: task, error } = await supabase
+        .from('tasks')
+        .update({ assigned_to: null })
+        .eq('id', taskId)
+        .eq('project_id', projectId)
+        .select('id, name')
+        .single();
+
+      if (error) return { success: false, error: error.message };
+      
+      return { 
+        success: true, 
+        task,
+        message: `✅ Unassigned task "${task.name}"` 
+      };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Failed' };
+    }
+  },
+});
+
+export const getAssignedTasksTool = tool({
+  description: 'Get tasks assigned to a specific teammate or see all task assignments.',
+  parameters: z.object({
+    projectId: z.number(),
+    userId: z.string().optional().describe('Optional: filter by specific user_id'),
+  }),
+  execute: async ({ projectId, userId }) => {
+    try {
+      const supabase = await createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return { success: false, error: 'Not authenticated' };
+
+      let query = supabase
+        .from('tasks')
+        .select('id, pr_id, name, status, difficulty, xp, assigned_to')
+        .eq('project_id', projectId)
+        .not('assigned_to', 'is', null);
+
+      if (userId) {
+        query = query.eq('assigned_to', userId);
+      }
+
+      const { data: tasks, error } = await query.order('pr_id', { ascending: true });
+
+      if (error) return { success: false, error: error.message };
+
+      // Get unique assigned user IDs
+      const assignedUserIds = [...new Set((tasks || [])
+        .map(t => t.assigned_to)
+        .filter(Boolean))] as string[];
+      
+      // Fetch profiles for assigned users
+      let profileMap = new Map();
+      if (assignedUserIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, username, level')
+          .in('id', assignedUserIds);
+        
+        profileMap = new Map(profiles?.map(p => [p.id, { username: p.username, level: p.level }]) || []);
+      }
+
+      const formattedTasks = (tasks || []).map((task: any) => {
+        const profile = task.assigned_to ? profileMap.get(task.assigned_to) : null;
+        return {
+          id: task.id,
+          pr_id: task.pr_id,
+          name: task.name,
+          status: task.status,
+          difficulty: task.difficulty,
+          xp: task.xp,
+          assigned_to: profile?.username || 'Unknown',
+          assigned_to_level: profile?.level || 1,
+        };
+      });
+
+      return { 
+        success: true, 
+        tasks: formattedTasks, 
+        count: formattedTasks.length,
+        message: userId 
+          ? `📋 Found ${formattedTasks.length} assigned tasks`
+          : `📋 Found ${formattedTasks.length} assigned tasks across team`
+      };
     } catch (error) {
       return { success: false, error: error instanceof Error ? error.message : 'Failed' };
     }
@@ -311,7 +564,7 @@ export const removeDependencyTool = tool({
  */
 
 export const getTasksTool = tool({
-  description: 'Get all tasks with full details.',
+  description: 'Get all tasks with full details including assignment info.',
   parameters: z.object({
     projectId: z.number(),
   }),
@@ -323,12 +576,47 @@ export const getTasksTool = tool({
 
       const { data: tasks, error } = await supabase
         .from('tasks')
-        .select('id, pr_id, name, description, status, difficulty, xp, time_estimate, phase_id, tools, hints')
+        .select(`
+          id, 
+          pr_id, 
+          name, 
+          description, 
+          status, 
+          difficulty, 
+          xp, 
+          time_estimate, 
+          phase_id, 
+          tools, 
+          hints,
+          assigned_to
+        `)
         .eq('project_id', projectId)
         .order('pr_id', { ascending: true });
 
       if (error) return { success: false, error: error.message };
-      return { success: true, tasks, count: tasks?.length || 0 };
+      
+      // Get unique assigned user IDs
+      const assignedUserIds = [...new Set((tasks || [])
+        .map(t => t.assigned_to)
+        .filter(Boolean))] as string[];
+      
+      // Fetch profiles for assigned users
+      let profileMap = new Map();
+      if (assignedUserIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, username')
+          .in('id', assignedUserIds);
+        
+        profileMap = new Map(profiles?.map(p => [p.id, p.username]) || []);
+      }
+      
+      const formattedTasks = (tasks || []).map((task: any) => ({
+        ...task,
+        assigned_to_name: task.assigned_to ? profileMap.get(task.assigned_to) || null : null,
+      }));
+      
+      return { success: true, tasks: formattedTasks, count: formattedTasks?.length || 0 };
     } catch (error) {
       return { success: false, error: error instanceof Error ? error.message : 'Failed' };
     }
@@ -475,7 +763,7 @@ export const getBlockedTasksTool = tool({
 
       const [tasksRes, depsRes] = await Promise.all([
         supabase.from('tasks').select('id, name, status').eq('project_id', projectId),
-        supabase.from('task_dependencies').select('task_id, predecessor_task_id').eq('project_id', projectId),
+        supabase.from('task_dependencies').select('task_id, predecessor_task_id'),
       ]);
 
       const tasks = tasksRes.data || [];
@@ -700,6 +988,12 @@ export const alMurshidTools = {
   getBlockedTasks: getBlockedTasksTool,
   getProjectBrief: getProjectBriefTool,
   getMemory: getMemoryTool,
+  
+  // Collaboration tools
+  getTeammates: getTeammatesTool,
+  assignTaskToTeammate: assignTaskToTeammateTool,
+  unassignTask: unassignTaskTool,
+  getAssignedTasks: getAssignedTasksTool,
   
   // Write tools
   createTask: createTaskTool,

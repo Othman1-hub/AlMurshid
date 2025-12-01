@@ -92,7 +92,7 @@ export default function ProjectAiPage() {
       {
         id: 'system-1',
         role: 'assistant' as const,
-        content: 'Hello! I\'m Al-Murshid, your AI assistant for this project. I can help you:\n\n📋 Manage tasks (add, edit, delete, reorder)\n🎯 Manage phases and dependencies\n📊 Analyze progress and generate reports\n💡 Suggest improvements\n\nWhat do you need help with today?'
+        content: 'Hello! I\'m Al-Murshid, your AI assistant for this project. I can help you:\n\n📋 Manage tasks (add, edit, delete, reorder)\n🎯 Manage phases and dependencies\n👥 View teammates and assign tasks to them\n📊 Analyze progress and generate reports\n💡 Suggest improvements\n\nWhat do you need help with today?'
       }
     ],
     body: { projectId, mode: 'assistant', language: 'en' },
@@ -181,6 +181,12 @@ export default function ProjectAiPage() {
           className="px-3 py-2 bg-[var(--color-surface)] hover:bg-[var(--color-accent)] transition-colors"
         >
           📊 Project Status
+        </button>
+        <button
+          onClick={() => handleInputChange({ target: { value: 'Show me all teammates in this project' } } as any)}
+          className="px-3 py-2 bg-[var(--color-surface)] hover:bg-[var(--color-accent)] transition-colors"
+        >
+          👥 Teammates
         </button>
         <button
           onClick={() => handleInputChange({ target: { value: 'Show me remaining and blocked tasks' } } as any)}
@@ -300,7 +306,7 @@ export default function ProjectAiPage() {
       </form>
 
       <div className="text-[10px] text-center text-[var(--color-ink-soft)] font-mono space-y-1 flex-shrink-0">
-        <div>💡 Request: add/edit/delete tasks, create phases, add dependencies, change difficulty, or any edits</div>
+        <div>💡 Request: add/edit/delete tasks, create phases, add dependencies, assign teammates, or any edits</div>
         <div>🔧 Al-Murshid can execute operations directly on the database</div>
       </div>
     </div>
