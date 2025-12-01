@@ -499,8 +499,8 @@ export default function DashboardPage() {
                 icon: <Target className="w-4 h-4" />,
               },
               {
-                label: "Focus Efficiency",
-                value: "+18%",
+                label: "Total Tasks",
+                value: loading ? "..." : tasksSummary.total.toString(),
                 icon: <Sparkles className="w-4 h-4" />,
               },
               {
