@@ -27,26 +27,26 @@ export async function GET(
     }
 
     // Verify user owns or is a teammate on the project
-    const { project, error } = await fetchProjectForUser(
+    const { project, error: accessError } = await fetchProjectForUser(
       supabase,
       user.id,
       projectId,
       'id'
     );
 
-    if (!project || error) {
+    if (!project || accessError) {
       return Response.json({ error: 'Project not found' }, { status: 404 });
     }
 
     // Fetch tasks
-    const { data: tasks, error } = await supabase
+    const { data: tasks, error: tasksError } = await supabase
       .from('tasks')
       .select('*')
       .eq('project_id', projectId)
       .order('created_at', { ascending: true });
 
-    if (error) {
-      throw error;
+    if (tasksError) {
+      throw tasksError;
     }
 
     return Response.json(tasks || []);

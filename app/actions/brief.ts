@@ -2,6 +2,7 @@
 
 import { createClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
+import { fetchProjectForUser } from "@/lib/projectAccess";
 
 export async function getProjectBrief(projectId: number) {
   const supabase = await createClient();
@@ -12,19 +13,19 @@ export async function getProjectBrief(projectId: number) {
   }
 
   try {
-    const { data, error } = await supabase
-      .from("projects")
-      .select("breif, prompt")
-      .eq("id", projectId)
-      .eq("user_id", user.id)
-      .single();
+    const { project, error } = await fetchProjectForUser(
+      supabase,
+      user.id,
+      projectId,
+      "breif, prompt, user_id"
+    );
 
-    if (error) {
+    if (error || !project) {
       console.error("Error fetching brief:", error);
       return null;
     }
 
-    return data;
+    return { breif: project.breif, prompt: project.prompt };
   } catch (err) {
     console.error("Error in getProjectBrief:", err);
     return null;
@@ -41,25 +42,25 @@ export async function updateProjectBrief(projectId: number, brief: string) {
 
   try {
     // Verify user owns the project
-    const { data: project } = await supabase
-      .from("projects")
-      .select("id")
-      .eq("id", projectId)
-      .eq("user_id", user.id)
-      .single();
+    const { project, error: accessError } = await fetchProjectForUser(
+      supabase,
+      user.id,
+      projectId,
+      "id, user_id"
+    );
 
-    if (!project) {
+    if (!project || accessError || project.user_id !== user.id) {
       return { error: "Project not found or unauthorized" };
     }
 
-    const { error } = await supabase
+    const { error: updateError } = await supabase
       .from("projects")
       .update({ breif: brief })
       .eq("id", projectId)
       .eq("user_id", user.id);
 
-    if (error) {
-      return { error: error.message };
+    if (updateError) {
+      return { error: updateError.message };
     }
 
     revalidatePath(`/dashboard/${projectId}/brief`, "page");
@@ -80,25 +81,25 @@ export async function updateProjectPrompt(projectId: number, prompt: string) {
 
   try {
     // Verify user owns the project
-    const { data: project } = await supabase
-      .from("projects")
-      .select("id")
-      .eq("id", projectId)
-      .eq("user_id", user.id)
-      .single();
+    const { project, error: accessError } = await fetchProjectForUser(
+      supabase,
+      user.id,
+      projectId,
+      "id, user_id"
+    );
 
-    if (!project) {
+    if (!project || accessError || project.user_id !== user.id) {
       return { error: "Project not found or unauthorized" };
     }
 
-    const { error } = await supabase
+    const { error: updateError } = await supabase
       .from("projects")
       .update({ prompt })
       .eq("id", projectId)
       .eq("user_id", user.id);
 
-    if (error) {
-      return { error: error.message };
+    if (updateError) {
+      return { error: updateError.message };
     }
 
     revalidatePath(`/dashboard/${projectId}/brief`, "page");

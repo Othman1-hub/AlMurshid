@@ -15,9 +15,16 @@ export async function fetchProjectForUser<T = any>(
   projectId: number,
   selectFields: string = "id, user_id"
 ): Promise<ProjectAccessResult<T>> {
+  const normalizedSelect =
+    selectFields.trim() === "*"
+      ? "*"
+      : selectFields.includes("user_id")
+      ? selectFields
+      : `${selectFields}, user_id`;
+
   const { data: project, error } = await supabase
     .from("projects")
-    .select(selectFields)
+    .select(normalizedSelect)
     .eq("id", projectId)
     .maybeSingle();
 
