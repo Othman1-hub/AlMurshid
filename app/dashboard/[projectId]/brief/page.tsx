@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { FileText, Lock, Unlock, Copy, AlertTriangle, Terminal, CheckCircle, RefreshCw } from 'lucide-react';
+import { FileText, Lock, Unlock, Copy, AlertTriangle, Terminal, CheckCircle, RefreshCw, Download, Eye, Edit } from 'lucide-react';
 import { getProjectBrief, updateProjectBrief, updateProjectPrompt } from '@/app/actions/brief';
+import ReactMarkdown from 'react-markdown';
 
 export default function ProjectBriefPage({ params }: any) {
   const { projectId: projectIdStr } = React.use(params) as any;
@@ -13,6 +14,7 @@ export default function ProjectBriefPage({ params }: any) {
   const [isBriefLocked, setIsBriefLocked] = useState(true);
   const [isPromptLocked, setIsPromptLocked] = useState(true);
   const [showUnlockConfirm, setShowUnlockConfirm] = useState(false);
+  const [viewMode, setViewMode] = useState<'edit' | 'preview'>('preview');
   const [loading, setLoading] = useState(true);
   const [savingBrief, setSavingBrief] = useState(false);
   const [savingPrompt, setSavingPrompt] = useState(false);
@@ -121,6 +123,17 @@ export default function ProjectBriefPage({ params }: any) {
   };
 
   const isReadOnly = userRole === 3;
+  const downloadBriefAsMd = () => {
+    const blob = new Blob([briefText], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `project-brief-${projectId}.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
 
   if (loading) {
     return (
@@ -160,6 +173,36 @@ export default function ProjectBriefPage({ params }: any) {
             <button
               onClick={() => !isReadOnly && setIsBriefLocked((prev) => !prev)}
               disabled={isReadOnly}
+              onClick={downloadBriefAsMd}
+              className="text-xs font-mono uppercase flex items-center gap-2 px-3 py-2 border border-[var(--color-border)] text-[var(--color-ink-soft)] hover:text-[var(--color-ink)] hover:border-[var(--color-ink)] transition-colors"
+              title="Download as Markdown"
+            >
+              <Download className="w-3 h-3" /> MD
+            </button>
+            <div className="flex border border-[var(--color-border)]">
+              <button
+                onClick={() => setViewMode('preview')}
+                className={`text-xs font-mono uppercase flex items-center gap-1.5 px-3 py-2 transition-colors ${
+                  viewMode === 'preview'
+                    ? 'bg-[var(--color-accent)] text-[var(--color-ink)]'
+                    : 'text-[var(--color-ink-soft)] hover:text-[var(--color-ink)]'
+                }`}
+              >
+                <Eye className="w-3 h-3" /> Preview
+              </button>
+              <button
+                onClick={() => setViewMode('edit')}
+                className={`text-xs font-mono uppercase flex items-center gap-1.5 px-3 py-2 border-l border-[var(--color-border)] transition-colors ${
+                  viewMode === 'edit'
+                    ? 'bg-[var(--color-accent)] text-[var(--color-ink)]'
+                    : 'text-[var(--color-ink-soft)] hover:text-[var(--color-ink)]'
+                }`}
+              >
+                <Edit className="w-3 h-3" /> Edit
+              </button>
+            </div>
+            <button
+              onClick={() => setIsBriefLocked((prev) => !prev)}
               className={`text-xs font-mono uppercase flex items-center gap-2 px-3 py-2 border border-[var(--color-border)] transition-colors ${
                 isBriefLocked
                   ? 'text-[var(--color-ink-soft)] hover:text-[var(--color-ink)] hover:border-[var(--color-ink)]'
@@ -218,6 +261,56 @@ export default function ProjectBriefPage({ params }: any) {
               }`}
               spellCheck={false}
             />
+            {viewMode === 'edit' ? (
+              <textarea
+                value={briefText}
+                onChange={(e) => setBriefText(e.target.value)}
+                disabled={isBriefLocked}
+                className={`flex-1 min-h-[50vh] w-full bg-[var(--color-surface)]/70 p-6 font-mono text-sm leading-7 resize-none focus:outline-none transition-colors ${
+                  isBriefLocked
+                    ? 'cursor-default text-[var(--color-ink)]'
+                    : 'text-[var(--color-ink)] focus:bg-[var(--color-surface-alt)]/40'
+                }`}
+                spellCheck={false}
+              />
+            ) : (
+              <div className="flex-1 min-h-[50vh] w-full bg-[var(--color-surface)]/70 p-6 overflow-y-auto">
+                <div className="prose prose-invert max-w-none text-[var(--color-ink)] leading-7">
+                  <ReactMarkdown
+                    components={{
+                      h1: ({ node, ...props }) => <h1 className="text-2xl font-bold text-[var(--color-ink)] mb-4 mt-6 pb-2 border-b border-[var(--color-border)]" {...props} />,
+                      h2: ({ node, ...props }) => <h2 className="text-xl font-bold text-[var(--color-ink)] mb-3 mt-5" {...props} />,
+                      h3: ({ node, ...props }) => <h3 className="text-lg font-bold text-[var(--color-ink)] mb-2 mt-4" {...props} />,
+                      h4: ({ node, ...props }) => <h4 className="text-base font-bold text-[var(--color-ink)] mb-2 mt-3" {...props} />,
+                      p: ({ node, ...props }) => <p className="text-sm text-[var(--color-ink)] mb-4 leading-relaxed" {...props} />,
+                      ul: ({ node, ...props }) => <ul className="list-disc list-inside mb-4 text-[var(--color-ink)] space-y-1" {...props} />,
+                      ol: ({ node, ...props }) => <ol className="list-decimal list-inside mb-4 text-[var(--color-ink)] space-y-1" {...props} />,
+                      li: ({ node, ...props }) => <li className="text-sm text-[var(--color-ink)] ml-4" {...props} />,
+                      code: ({ node, inline, ...props }: any) => 
+                        inline ? (
+                          <code className="bg-[var(--color-surface-alt)] text-[var(--color-accent)] px-1.5 py-0.5 font-mono text-xs border border-[var(--color-border)]" {...props} />
+                        ) : (
+                          <code className="block bg-[var(--color-surface-alt)] text-[var(--color-ink)] p-4 font-mono text-xs border border-[var(--color-border)] overflow-x-auto my-3" {...props} />
+                        ),
+                      pre: ({ node, ...props }) => <pre className="bg-[var(--color-surface-alt)] p-4 border border-[var(--color-border)] overflow-x-auto my-3" {...props} />,
+                      blockquote: ({ node, ...props }) => <blockquote className="border-l-4 border-[var(--color-accent)] pl-4 my-4 text-[var(--color-ink-soft)] italic" {...props} />,
+                      a: ({ node, ...props }) => <a className="text-[var(--color-accent)] hover:underline" {...props} />,
+                      strong: ({ node, ...props }) => <strong className="font-bold text-[var(--color-ink)]" {...props} />,
+                      em: ({ node, ...props }) => <em className="italic text-[var(--color-ink)]" {...props} />,
+                      hr: ({ node, ...props }) => <hr className="border-[var(--color-border)] my-6" {...props} />,
+                      table: ({ node, ...props }) => <table className="w-full border-collapse border border-[var(--color-border)] my-4" {...props} />,
+                      thead: ({ node, ...props }) => <thead className="bg-[var(--color-surface-alt)]" {...props} />,
+                      tbody: ({ node, ...props }) => <tbody {...props} />,
+                      tr: ({ node, ...props }) => <tr className="border-b border-[var(--color-border)]" {...props} />,
+                      th: ({ node, ...props }) => <th className="text-left p-2 text-sm font-bold text-[var(--color-ink)] border border-[var(--color-border)]" {...props} />,
+                      td: ({ node, ...props }) => <td className="p-2 text-sm text-[var(--color-ink)] border border-[var(--color-border)]" {...props} />,
+                    }}
+                  >
+                    {briefText || '*No brief content*'}
+                  </ReactMarkdown>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="w-full lg:w-80 border border-[var(--color-border)] bg-[var(--color-surface)] flex flex-col">
