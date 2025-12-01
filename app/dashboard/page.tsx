@@ -86,8 +86,6 @@ export default function DashboardPage() {
   const Skeleton = ({ className = "" }: { className?: string }) => (
     <div className={`skeleton ${className}`} aria-hidden />
   );
-
-  // Fetch dashboard data on mount
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -174,12 +172,6 @@ export default function DashboardPage() {
       router.push(`/dashboard/${formState.project.id}/generate`);
     }
   }, [formState.success, formState.project, router]);
-
-  const toggleQuest = (id: number) => {
-    setDailyQuests((prev) =>
-      prev.map((q) => (q.id === id ? { ...q, completed: !q.completed } : q))
-    );
-  };
 
   const handleEditProject = async (id: string, name: string) => {
     if (!name.trim()) return;
@@ -365,7 +357,7 @@ export default function DashboardPage() {
           />
 
           {/* Daily Protocols (Quests) */}
-          <DailyQuests dailyQuests={dailyQuests} onToggleQuest={toggleQuest} />
+          <DailyQuests />
         </section>
 
         {/* Achievements / Badges Strip */}
