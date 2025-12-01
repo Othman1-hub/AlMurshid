@@ -41,7 +41,6 @@ export async function updateProjectBrief(projectId: number, brief: string) {
   }
 
   try {
-    // Verify user owns the project
     const { project, error: accessError } = await fetchProjectForUser(
       supabase,
       user.id,
@@ -49,15 +48,14 @@ export async function updateProjectBrief(projectId: number, brief: string) {
       "id, user_id"
     );
 
-    if (!project || accessError || project.user_id !== user.id) {
+    if (!project || accessError) {
       return { error: "Project not found or unauthorized" };
     }
 
     const { error: updateError } = await supabase
       .from("projects")
       .update({ breif: brief })
-      .eq("id", projectId)
-      .eq("user_id", user.id);
+      .eq("id", projectId);
 
     if (updateError) {
       return { error: updateError.message };
@@ -80,7 +78,6 @@ export async function updateProjectPrompt(projectId: number, prompt: string) {
   }
 
   try {
-    // Verify user owns the project
     const { project, error: accessError } = await fetchProjectForUser(
       supabase,
       user.id,
@@ -88,15 +85,14 @@ export async function updateProjectPrompt(projectId: number, prompt: string) {
       "id, user_id"
     );
 
-    if (!project || accessError || project.user_id !== user.id) {
+    if (!project || accessError) {
       return { error: "Project not found or unauthorized" };
     }
 
     const { error: updateError } = await supabase
       .from("projects")
       .update({ prompt })
-      .eq("id", projectId)
-      .eq("user_id", user.id);
+      .eq("id", projectId);
 
     if (updateError) {
       return { error: updateError.message };

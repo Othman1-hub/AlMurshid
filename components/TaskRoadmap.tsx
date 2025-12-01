@@ -726,6 +726,7 @@ export default function TaskRoadmap({ projectId, tasks, phases, dependencies }: 
         <div className="roadmap-spine"></div>
 
         {phaseState.map((phase, phaseIndex) => {
+          const isLastPhase = phaseIndex === phaseState.length - 1;
           const prevPhaseTasks = phaseIndex > 0 ? phaseState[phaseIndex - 1].tasks : [];
           // Ensure we check against 'completed', not 'done'
           const prevPhaseDone = phaseIndex === 0 || (prevPhaseTasks.length > 0 && prevPhaseTasks.every(t => t.rawStatus === 'completed'));
@@ -733,7 +734,7 @@ export default function TaskRoadmap({ projectId, tasks, phases, dependencies }: 
           const isPhaseLocked = phaseStatus === 'LOCKED';
 
           return (
-            <div key={phase.id} className="relative mb-32 w-full">
+            <div key={phase.id} className={`relative w-full ${isLastPhase ? 'mb-12' : 'mb-32'}`}>
               
               {/* PHASE NODE (Center Interaction Point) */}
               <div className="absolute left-1/2 top-0 transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center z-20 group/node">
