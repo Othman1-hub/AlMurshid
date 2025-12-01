@@ -171,8 +171,6 @@ export default function ProjectBriefPage({ params }: any) {
               </div>
             )}
             <button
-              onClick={() => !isReadOnly && setIsBriefLocked((prev) => !prev)}
-              disabled={isReadOnly}
               onClick={downloadBriefAsMd}
               className="text-xs font-mono uppercase flex items-center gap-2 px-3 py-2 border border-[var(--color-border)] text-[var(--color-ink-soft)] hover:text-[var(--color-ink)] hover:border-[var(--color-ink)] transition-colors"
               title="Download as Markdown"
@@ -202,7 +200,8 @@ export default function ProjectBriefPage({ params }: any) {
               </button>
             </div>
             <button
-              onClick={() => setIsBriefLocked((prev) => !prev)}
+              onClick={() => !isReadOnly && setIsBriefLocked((prev) => !prev)}
+              disabled={isReadOnly}
               className={`text-xs font-mono uppercase flex items-center gap-2 px-3 py-2 border border-[var(--color-border)] transition-colors ${
                 isBriefLocked
                   ? 'text-[var(--color-ink-soft)] hover:text-[var(--color-ink)] hover:border-[var(--color-ink)]'
@@ -250,22 +249,11 @@ export default function ProjectBriefPage({ params }: any) {
               </div>
             </div>
 
-            <textarea
-              value={briefText}
-              onChange={(e) => setBriefText(e.target.value)}
-              disabled={isBriefLocked || isReadOnly}
-              className={`flex-1 min-h-[50vh] w-full bg-[var(--color-surface)]/70 p-6 font-mono text-sm leading-7 resize-none focus:outline-none transition-colors ${
-                isBriefLocked
-                  ? 'cursor-default text-[var(--color-ink)]'
-                  : 'text-[var(--color-ink)] focus:bg-[var(--color-surface-alt)]/40'
-              }`}
-              spellCheck={false}
-            />
             {viewMode === 'edit' ? (
               <textarea
                 value={briefText}
                 onChange={(e) => setBriefText(e.target.value)}
-                disabled={isBriefLocked}
+                disabled={isBriefLocked || isReadOnly}
                 className={`flex-1 min-h-[50vh] w-full bg-[var(--color-surface)]/70 p-6 font-mono text-sm leading-7 resize-none focus:outline-none transition-colors ${
                   isBriefLocked
                     ? 'cursor-default text-[var(--color-ink)]'
