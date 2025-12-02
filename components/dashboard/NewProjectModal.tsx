@@ -81,6 +81,22 @@ export function NewProjectModal({
                 rows={3}
               />
             </div>
+
+            <div className="space-y-2">
+              <label className="block text-xs font-mono uppercase tracking-widest text-[var(--color-ink-soft)] flex items-center gap-2">
+                <span className="w-1 h-1 bg-[var(--color-accent)]"></span>
+                Create Collaboration Password (Optional)
+              </label>
+              <input
+                name="collaboration_password"
+                type="password"
+                className="w-full bg-[var(--color-bg)] border border-[var(--color-border)] p-3 font-mono text-sm focus:outline-none focus:border-[var(--color-accent)] placeholder:text-[var(--color-ink-soft)]/30 transition-colors"
+                placeholder="Leave blank to keep project private"
+              />
+              <p className="text-[10px] text-[var(--color-ink-soft)] font-mono">
+                Anyone with the ProjectName-ID and this password can join as a teammate.
+              </p>
+            </div>
           </div>
 
           {formError && (

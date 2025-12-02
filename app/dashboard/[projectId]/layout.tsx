@@ -24,6 +24,7 @@ export default function ProjectLayout({ children }: { children: React.ReactNode 
     const stored = window.localStorage.getItem('almurshed-theme');
     return stored && themeOptions.includes(stored as Theme) ? (stored as Theme) : 'dark';
   });
+  const [projectName, setProjectName] = useState<string | null>(null);
   const [isNavCollapsed, setIsNavCollapsed] = useState(false);
   const pathname = usePathname();
   const segments = pathname.split('/').filter(Boolean);
@@ -48,6 +49,32 @@ export default function ProjectLayout({ children }: { children: React.ReactNode 
       localStorage.setItem('almurshed-theme', theme);
     }
   }, [theme]);
+
+  // fetch project name for sidebar header
+  useEffect(() => {
+    if (!projectId) return;
+    const controller = new AbortController();
+
+    const loadProject = async () => {
+      try {
+        const res = await fetch(`/api/projects/${projectId}`, { signal: controller.signal });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data?.name) {
+          setProjectName(data.name as string);
+        }
+      } catch (err) {
+        if ((err as any)?.name !== 'AbortError') {
+          console.error('Failed to load project info', err);
+        }
+      }
+    };
+
+    loadProject();
+    return () => controller.abort();
+  }, [projectId]);
+
+  const projectDisplayName = projectName?.trim() || projectId;
 
   if (isStandaloneFirstGenerate) {
     return (
@@ -108,7 +135,7 @@ export default function ProjectLayout({ children }: { children: React.ReactNode 
           <aside className="border border-[var(--color-border)] bg-[var(--color-surface)] p-4 w-full lg:w-72 flex-shrink-0 lg:sticky lg:top-20 lg:self-start">
             <div className="mb-4">
               <div className="text-xs font-mono uppercase tracking-widest text-[var(--color-ink-soft)]">Project</div>
-              <div className="text-lg font-semibold mt-1">{projectId.toUpperCase()}</div>
+              <div className="text-lg font-semibold mt-1 break-words">{projectDisplayName}</div>
               <div className="text-sm text-[var(--color-ink-soft)]">Workspace overview and quick links.</div>
             </div>
             <div className="flex flex-col gap-2">
